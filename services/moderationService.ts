@@ -7,6 +7,7 @@ import {
   doc,
   limit,
   onSnapshot,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -53,6 +54,9 @@ export interface AuteurSignalement {
 // --- Longueurs maximales ----------------------------------------------------
 
 export const LONGUEUR_MAX_MOTIF = 1000;
+/** Ce que la personne ecrit elle-meme. Le libelle du motif s'ajoute par-dessus,
+ *  et le tout doit rester sous la limite que la regle Firestore impose. */
+export const LONGUEUR_MAX_PRECISION = 800;
 const MAX_NOM = 120;
 const MAX_ID = 200;
 const MAX_EXTRAIT = 500;
@@ -197,7 +201,9 @@ export function suivreSignalements(
   onErreur?: (message: string) => void,
 ): () => void {
   return onSnapshot(
-    query(collection(db, 'signalements'), limit(LIMITE_SIGNALEMENTS)),
+    // Sans tri, Firestore rend 300 documents dans l'ordre des identifiants et
+    // les signalements recents passent a la trappe des que la file s'allonge.
+    query(collection(db, 'signalements'), orderBy('creeLe', 'desc'), limit(LIMITE_SIGNALEMENTS)),
     (capture) => {
       const liste = capture.docs.map((d) => enSignalement(d.id, d.data() as Record<string, unknown>));
       cb(liste.sort(parNouveaute));

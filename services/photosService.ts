@@ -59,7 +59,12 @@ const mapDocs = (snap: {
 
 const msDe = (photo: Photo): number => photo.creeLe?.toMillis?.() ?? 0;
 
-/** Les plus recentes d'abord. Le tri se fait ici pour ne demander aucun index. */
+/**
+ * Les plus recentes d'abord. Le tri se fait ici pour ne demander aucun index.
+ * ponytail: la fenetre est de 300 documents au maximum. Au-dela, il faudra un
+ * orderBy('creeLe', 'desc') dans la requete et un index compose
+ * (statut + creeLe, uid + creeLe) declare dans firestore.indexes.json.
+ */
 const recentesDAbord = (photos: Photo[]): Photo[] =>
   [...photos].sort((a, b) => msDe(b) - msDe(a));
 
@@ -156,20 +161,27 @@ export const televerserPhoto = async (
 
   const url = await getDownloadURL(cible);
 
-  const reference = await addDoc(collection(db, 'photos'), {
-    uid,
-    nomMembre: nomMembre.trim().slice(0, 120) || 'Membre',
-    url,
-    chemin,
-    largeur,
-    hauteur,
-    legende: legende.trim().slice(0, LONGUEUR_MAX_LEGENDE),
-    lieu: (lieu || '').trim().slice(0, LONGUEUR_MAX_LIEU),
-    statut: 'attente' as StatutPhoto,
-    creeLe: serverTimestamp(),
-    majLe: serverTimestamp(),
-  });
-  return reference.id;
+  try {
+    const reference = await addDoc(collection(db, 'photos'), {
+      uid,
+      nomMembre: nomMembre.trim().slice(0, 120) || 'Membre',
+      url,
+      chemin,
+      largeur,
+      hauteur,
+      legende: legende.trim().slice(0, LONGUEUR_MAX_LEGENDE),
+      lieu: (lieu || '').trim().slice(0, LONGUEUR_MAX_LIEU),
+      statut: 'attente' as StatutPhoto,
+      creeLe: serverTimestamp(),
+      majLe: serverTimestamp(),
+    });
+    return reference.id;
+  } catch (e) {
+    // Le document a ete refuse : on retire le fichier pour ne pas laisser un
+    // orphelin dans Storage, puis on remonte l'erreur telle quelle.
+    await deleteObject(cible).catch(() => undefined);
+    throw e;
+  }
 };
 
 /** Reserve a l'administration : les regles Firestore refusent le reste. */
@@ -180,13 +192,21 @@ export const changerStatutPhoto = async (
   await updateDoc(doc(db, 'photos', id), { statut, majLe: serverTimestamp() });
 };
 
-/** Efface le document et le fichier. Un fichier deja disparu ne bloque rien. */
+/**
+ * Efface le document, puis le fichier. Le document est ce qui compte : la
+ * galerie ne lit rien d'autre.
+ * ponytail: storage.rules n'autorise l'ecriture sous photos/{uid} qu'au
+ * proprietaire, donc l'effacement du fichier echoue quand c'est
+ * l'administration qui supprime la photo d'un membre. Le fichier reste alors
+ * dans Storage sans etre reference nulle part. La correction appartient a
+ * storage.rules ou a une fonction Cloud, pas a ce module.
+ */
 export const supprimerPhoto = async (id: string, chemin: string): Promise<void> => {
   await deleteDoc(doc(db, 'photos', id));
   if (!chemin) return;
   try {
     await deleteObject(ref(getStorage(getApp()), chemin));
   } catch {
-    /* le fichier n'existe plus, le document est parti, c'est suffisant */
+    /* fichier deja disparu ou effacement refuse : le document est parti */
   }
 };

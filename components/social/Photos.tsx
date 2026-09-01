@@ -34,17 +34,19 @@ interface PhotosProps {
 const TEXTES = {
   fr: {
     etiquette: 'Galerie des membres',
-    titre: 'Le territoire, photographié par ceux qui y vivent',
-    intro: "Voici les images déposées par les membres de l'Observatoire : le territoire, les rassemblements, les traces du chantier. Chaque photo passe par une relecture avant de paraître ici.",
+    titre: "Le territoire vu par ceux qui l'habitent",
+    intro: "Les membres de l'Observatoire déposent ici les images du territoire qu'ils habitent et de ce qui s'y passe. Chaque photo passe par une relecture du comité avant de paraître dans la galerie.",
     ajouter: 'Ajouter une photo',
     ongletGalerie: 'La galerie',
     ongletFile: 'À relire',
     aucune: 'Aucune photo dans la galerie',
-    aucuneDesc: "Les premières images arriveront dès qu'un membre en déposera. Vous pouvez ouvrir le formulaire et déposer la vôtre.",
+    aucuneDesc: "Les premières images arriveront dès qu'un membre en déposera. La vôtre ouvrira la galerie.",
     fileVide: 'Rien à relire',
     fileVideDesc: "La file est vide. Toute nouvelle photo déposée par un membre apparaîtra ici en attente de votre décision.",
     erreur: 'La galerie ne se charge pas',
-    erreurDesc: "Votre accès a été refusé ou la connexion a été coupée. Rechargez la page dans un instant.",
+    erreurDesc: 'La connexion à la galerie a été coupée. Rechargez la page dans un instant.',
+    erreurFile: 'La file de relecture ne répond pas',
+    erreurFileDesc: "La dernière action n'a pas été enregistrée. Rechargez la page et reprenez la relecture.",
     connectez: 'Connectez-vous pour déposer une photo.',
     formTitre: 'Déposer une photo',
     fFichier: 'Choisir une image',
@@ -52,7 +54,7 @@ const TEXTES = {
     fLegende: 'Légende',
     fLegendePlaceholder: 'Ce que montre cette image',
     fLieu: 'Lieu (facultatif)',
-    fLieuPlaceholder: 'Lac Simon, Duhamel, chemin de la Rivière',
+    fLieuPlaceholder: 'Chemin de la Rivière, Duhamel',
     envoyer: 'Envoyer la photo',
     envoi: 'Envoi',
     annuler: 'Annuler',
@@ -73,17 +75,19 @@ const TEXTES = {
   },
   en: {
     etiquette: 'Members gallery',
-    titre: 'The land, photographed by the people who live on it',
-    intro: 'These are the images posted by members of the Observatory: the land, the gatherings, the marks left by the worksite. Every photo goes through a review before it appears here.',
+    titre: 'The land seen by those who live on it',
+    intro: 'Members of the Observatory post the images they take of the land they live on and of what happens there. Every photo goes through a review by the committee before it appears in the gallery.',
     ajouter: 'Add a photo',
     ongletGalerie: 'Gallery',
     ongletFile: 'To review',
     aucune: 'No photo in the gallery yet',
-    aucuneDesc: 'The first images will arrive as soon as a member posts one. You can open the form and add yours.',
+    aucuneDesc: 'The first images will arrive as soon as a member posts one. Yours would open the gallery.',
     fileVide: 'Nothing to review',
     fileVideDesc: 'The queue is empty. Any new photo posted by a member will appear here awaiting your decision.',
     erreur: 'The gallery will not load',
-    erreurDesc: 'Access was denied or the connection dropped. Reload the page in a moment.',
+    erreurDesc: 'The connection to the gallery dropped. Reload the page in a moment.',
+    erreurFile: 'The review queue is not answering',
+    erreurFileDesc: 'The last action was not saved. Reload the page and pick the review back up.',
     connectez: 'Sign in to post a photo.',
     formTitre: 'Post a photo',
     fFichier: 'Choose an image',
@@ -91,7 +95,7 @@ const TEXTES = {
     fLegende: 'Caption',
     fLegendePlaceholder: 'What this image shows',
     fLieu: 'Place (optional)',
-    fLieuPlaceholder: 'Lac Simon, Duhamel, chemin de la Rivière',
+    fLieuPlaceholder: 'Chemin de la Rivière, Duhamel',
     envoyer: 'Send the photo',
     envoi: 'Sending',
     annuler: 'Cancel',
@@ -146,6 +150,7 @@ const Visionneuse: React.FC<{
       className="animate-fade-in fixed inset-0 z-50 flex flex-col bg-[#02040a]/95 p-4 backdrop-blur-xl md:p-8"
       role="dialog"
       aria-modal="true"
+      aria-label={photo.legende || t.fermer}
     >
       <div className="flex justify-end">
         <button type="button" onClick={onFermer} className={BOUTON_ROND} aria-label={t.fermer}>
@@ -165,7 +170,7 @@ const Visionneuse: React.FC<{
         <img
           src={photo.url}
           alt={photo.legende}
-          className="mx-auto max-h-full min-h-0 w-auto max-w-full rounded-2xl object-contain"
+          className="max-h-full min-h-0 w-full min-w-0 flex-1 rounded-2xl object-contain"
         />
         <button
           type="button"
@@ -314,7 +319,8 @@ const ModaleDepot: React.FC<{
           <button
             type="button"
             onClick={onFermer}
-            className="rounded-full border border-white/5 px-5 py-3 text-sm font-semibold text-slate-400 transition-all hover:border-white/10 hover:text-slate-200"
+            disabled={envoi}
+            className="rounded-full border border-white/5 px-5 py-3 text-sm font-semibold text-slate-400 transition-all hover:border-white/10 hover:text-slate-200 disabled:opacity-40"
           >
             {t.annuler}
           </button>
@@ -362,7 +368,8 @@ const Photos: React.FC<PhotosProps> = ({ language, isAdmin }) => {
   const [galerie, setGalerie] = useState<Photo[]>([]);
   const [file, setFile] = useState<Photo[]>([]);
   const [chargement, setChargement] = useState(true);
-  const [erreur, setErreur] = useState(false);
+  const [erreurGalerie, setErreurGalerie] = useState(false);
+  const [erreurFile, setErreurFile] = useState(false);
   const [onglet, setOnglet] = useState<'galerie' | 'file'>('galerie');
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [depotOuvert, setDepotOuvert] = useState(false);
@@ -373,11 +380,11 @@ const Photos: React.FC<PhotosProps> = ({ language, isAdmin }) => {
       (photos) => {
         setGalerie(photos);
         setChargement(false);
-        setErreur(false);
+        setErreurGalerie(false);
       },
       () => {
         setChargement(false);
-        setErreur(true);
+        setErreurGalerie(true);
       }
     );
     return () => desabonner();
@@ -386,9 +393,16 @@ const Photos: React.FC<PhotosProps> = ({ language, isAdmin }) => {
   useEffect(() => {
     if (!admin) {
       setFile([]);
+      setErreurFile(false);
       return;
     }
-    const desabonner = suivreFileModeration(setFile, () => setErreur(true));
+    const desabonner = suivreFileModeration(
+      (photos) => {
+        setFile(photos);
+        setErreurFile(false);
+      },
+      () => setErreurFile(true)
+    );
     return () => desabonner();
   }, [admin]);
 
@@ -404,7 +418,7 @@ const Photos: React.FC<PhotosProps> = ({ language, isAdmin }) => {
     try {
       await changerStatutPhoto(photo.id, statut);
     } catch {
-      setErreur(true);
+      setErreurFile(true);
     }
   };
 
@@ -413,7 +427,7 @@ const Photos: React.FC<PhotosProps> = ({ language, isAdmin }) => {
     try {
       await supprimerPhoto(photo.id, photo.chemin);
     } catch {
-      setErreur(true);
+      setErreurFile(true);
     }
   };
 
@@ -478,7 +492,7 @@ const Photos: React.FC<PhotosProps> = ({ language, isAdmin }) => {
         </div>
       )}
 
-      {erreur && (
+      {onglet === 'galerie' && erreurGalerie && (
         <Panneau
           danger
           icone={<AlertTriangle className="h-8 w-8 text-red-400" />}
@@ -487,13 +501,22 @@ const Photos: React.FC<PhotosProps> = ({ language, isAdmin }) => {
         />
       )}
 
-      {chargement && !erreur && (
+      {onglet === 'file' && admin && erreurFile && (
+        <Panneau
+          danger
+          icone={<AlertTriangle className="h-8 w-8 text-red-400" />}
+          titre={t.erreurFile}
+          texte={t.erreurFileDesc}
+        />
+      )}
+
+      {onglet === 'galerie' && chargement && !erreurGalerie && (
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-slate-600" />
         </div>
       )}
 
-      {onglet === 'galerie' && !chargement && !erreur && galerie.length === 0 && (
+      {onglet === 'galerie' && !chargement && !erreurGalerie && galerie.length === 0 && (
         <Panneau
           icone={<Images className="h-10 w-10 text-slate-600" />}
           titre={t.aucune}
@@ -518,7 +541,7 @@ const Photos: React.FC<PhotosProps> = ({ language, isAdmin }) => {
                 height={photo.hauteur || undefined}
                 className="w-full object-cover transition-all group-hover:scale-[1.02]"
               />
-              <span className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/20 to-transparent p-4 text-left opacity-0 transition-all group-hover:opacity-100">
+              <span className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/20 to-transparent p-4 text-left transition-all md:opacity-0 md:group-hover:opacity-100">
                 <span className="text-sm leading-snug text-white">{photo.legende}</span>
                 <span className={`${ETIQUETTE} mt-1.5 text-slate-400`}>
                   {photo.nomMembre}
@@ -530,7 +553,7 @@ const Photos: React.FC<PhotosProps> = ({ language, isAdmin }) => {
         </div>
       )}
 
-      {onglet === 'file' && admin && file.length === 0 && !erreur && (
+      {onglet === 'file' && admin && file.length === 0 && !erreurFile && (
         <Panneau
           icone={<ShieldCheck className="h-10 w-10 text-slate-600" />}
           titre={t.fileVide}

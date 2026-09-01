@@ -15,7 +15,7 @@ import { timeAgo } from '../../services/socialService';
 import { MembreFiche, suivreMembre } from '../../services/membresService';
 import {
   CibleSignalement,
-  LONGUEUR_MAX_MOTIF,
+  LONGUEUR_MAX_PRECISION,
   Signalement,
   StatutSignalement,
   debloquer,
@@ -60,6 +60,7 @@ const T = {
     bloquesTitre: 'Personnes bloquées',
     bloquesSousTitre: 'Votre liste privée',
     bloquesVideTitre: 'Vous n’avez bloqué personne',
+    bloquesChargement: 'Lecture de votre liste de blocages',
     bloquesVideTexte: 'Cette liste reste privée. Les personnes que vous bloquez disparaissent de votre mur, de vos messages et de l’annuaire.',
     bloquesErreur: 'Votre liste de blocages ne se charge pas pour le moment.',
     lever: 'Lever le blocage',
@@ -98,7 +99,8 @@ const T = {
     erreurTexte: 'Reading the reports was denied. Sign in again with an administration account and the queue comes back.',
     bloquesTitre: 'Blocked people',
     bloquesSousTitre: 'Your private list',
-    bloquesVideTitre: 'You have blocked nobody',
+    bloquesVideTitre: 'You have not blocked anyone',
+    bloquesChargement: 'Reading your block list',
     bloquesVideTexte: 'This list stays private. People you block disappear from your wall, your messages and the directory.',
     bloquesErreur: 'Your block list is not loading right now.',
     lever: 'Unblock',
@@ -189,11 +191,14 @@ export const BoutonSignaler: React.FC<BoutonSignalerProps> = ({ cible, extrait, 
 
       {ouvert && (
         <div
-          className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/80 p-4 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-end md:items-center justify-center overflow-y-auto bg-black/80 p-4 animate-fade-in"
           onClick={fermer}
         >
           <div
-            className="glass-card w-full max-w-md rounded-3xl border border-white/5 p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.modaleTitre}
+            className="glass-card max-h-[90vh] w-full max-w-md overflow-y-auto overflow-x-hidden rounded-3xl border border-white/5 p-6"
             onClick={(event) => event.stopPropagation()}
           >
             {envoye ? (
@@ -222,7 +227,7 @@ export const BoutonSignaler: React.FC<BoutonSignalerProps> = ({ cible, extrait, 
                 {extrait && (
                   <div className="mt-4">
                     <p className={`${etiquette} text-slate-500`}>{t.extraitTitre}</p>
-                    <p className="mt-2 rounded-2xl border border-white/5 bg-black/40 p-3 text-xs text-slate-400 line-clamp-4">
+                    <p className="mt-2 break-words rounded-2xl border border-white/5 bg-black/40 p-3 text-xs text-slate-400 line-clamp-4">
                       {extrait}
                     </p>
                   </div>
@@ -256,7 +261,8 @@ export const BoutonSignaler: React.FC<BoutonSignalerProps> = ({ cible, extrait, 
                   <textarea
                     id="moderation-precision"
                     value={precision}
-                    onChange={(e) => setPrecision(e.target.value.slice(0, LONGUEUR_MAX_MOTIF))}
+                    onChange={(e) => setPrecision(e.target.value.slice(0, LONGUEUR_MAX_PRECISION))}
+                    maxLength={LONGUEUR_MAX_PRECISION}
                     rows={3}
                     placeholder={t.precisionAide}
                     className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-black/40 p-3 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 transition-all"
@@ -295,7 +301,7 @@ const LigneBlocage: React.FC<{ uid: string; moiUid: string; language: Language }
   const nom = fiche ? fiche.nom : t.membreInconnu;
 
   return (
-    <li className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-black/30 p-3 hover:border-white/10 transition-all">
+    <li className="flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-white/5 bg-black/30 p-3 hover:border-white/10 transition-all">
       <div className="flex min-w-0 items-center gap-3">
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-black"
@@ -330,12 +336,12 @@ const LigneSignalement: React.FC<{ signalement: Signalement; language: Language 
   };
 
   return (
-    <li className="glass-card rounded-2xl border border-white/5 p-4 hover:border-white/10 transition-all">
+    <li className="glass-card min-w-0 rounded-2xl border border-white/5 p-4 hover:border-white/10 transition-all">
       <div className="flex flex-wrap items-center gap-3">
         <span className={`${etiquette} rounded-full bg-amber-500/10 px-2.5 py-1 text-amber-400`}>
           {t.cibles[signalement.cible.type]}
         </span>
-        <span className="text-xs text-slate-500">
+        <span className="min-w-0 break-words text-xs text-slate-500">
           {t.parQui} {signalement.parNom}
         </span>
         <span className="text-xs text-slate-600">
@@ -343,10 +349,10 @@ const LigneSignalement: React.FC<{ signalement: Signalement; language: Language 
         </span>
       </div>
 
-      <p className="mt-3 text-sm text-slate-200">{signalement.motif}</p>
+      <p className="mt-3 break-words text-sm text-slate-200">{signalement.motif}</p>
 
       {signalement.extrait && (
-        <p className="mt-3 rounded-2xl border border-white/5 bg-black/40 p-3 text-xs text-slate-400 line-clamp-3">
+        <p className="mt-3 break-words rounded-2xl border border-white/5 bg-black/40 p-3 text-xs text-slate-400 line-clamp-3">
           {signalement.extrait}
         </p>
       )}
@@ -389,7 +395,9 @@ const Moderation: React.FC<ModerationProps> = ({ language, isAdmin }) => {
   const [chargement, setChargement] = useState(true);
   const [erreurFile, setErreurFile] = useState<string | null>(null);
   const [blocages, setBlocages] = useState<string[]>([]);
+  const [chargementBlocages, setChargementBlocages] = useState(true);
   const [erreurBlocages, setErreurBlocages] = useState<string | null>(null);
+  const monUid = profile ? profile.uid : null;
 
   useEffect(() => {
     if (!isAdmin) {
@@ -404,6 +412,7 @@ const Moderation: React.FC<ModerationProps> = ({ language, isAdmin }) => {
         setChargement(false);
       },
       () => {
+        setSignalements([]);
         setErreurFile(t.erreurTexte);
         setChargement(false);
       },
@@ -411,16 +420,25 @@ const Moderation: React.FC<ModerationProps> = ({ language, isAdmin }) => {
   }, [isAdmin, t.erreurTexte]);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!monUid) {
+      setBlocages([]);
+      setChargementBlocages(false);
+      return;
+    }
+    setChargementBlocages(true);
     return suivreMesBlocages(
-      profile.uid,
+      monUid,
       (uids) => {
         setBlocages(uids);
         setErreurBlocages(null);
+        setChargementBlocages(false);
       },
-      () => setErreurBlocages(t.bloquesErreur),
+      () => {
+        setErreurBlocages(t.bloquesErreur);
+        setChargementBlocages(false);
+      },
     );
-  }, [profile, t.bloquesErreur]);
+  }, [monUid, t.bloquesErreur]);
 
   const ouverts = useMemo(() => signalements.filter((s) => s.statut === 'ouvert'), [signalements]);
 
@@ -468,16 +486,22 @@ const Moderation: React.FC<ModerationProps> = ({ language, isAdmin }) => {
         </header>
 
         <div className="mt-6">
-          {erreurBlocages && <Etat icone={<WifiOff size={28} />} texte={erreurBlocages} />}
+          {chargementBlocages && (
+            <Etat icone={<Loader2 size={28} className="animate-spin" />} texte={t.bloquesChargement} />
+          )}
 
-          {!erreurBlocages && blocages.length === 0 && (
+          {!chargementBlocages && erreurBlocages && (
+            <Etat icone={<WifiOff size={28} />} texte={erreurBlocages} />
+          )}
+
+          {!chargementBlocages && !erreurBlocages && blocages.length === 0 && (
             <Etat icone={<ShieldOff size={28} />} titre={t.bloquesVideTitre} texte={t.bloquesVideTexte} />
           )}
 
-          {!erreurBlocages && blocages.length > 0 && profile && (
+          {!chargementBlocages && !erreurBlocages && blocages.length > 0 && monUid && (
             <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {blocages.map((uid) => (
-                <LigneBlocage key={uid} uid={uid} moiUid={profile.uid} language={language} />
+                <LigneBlocage key={uid} uid={uid} moiUid={monUid} language={language} />
               ))}
             </ul>
           )}

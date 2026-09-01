@@ -51,7 +51,13 @@ async function checkAndIncrementRateLimit(ip, uid) {
         return { allowed: true, remaining: DAILY_LIMIT - count - 1 };
     });
 }
-const corsOrigins = ["https://le-lynx-observatoire.web.app", "https://le-lynx-observatoire.firebaseapp.com", "http://localhost:3000", "http://localhost:3001"];
+const corsOrigins = [
+    "https://le-lynx-observatoire.web.app",
+    "https://le-lynx-observatoire.firebaseapp.com",
+    "https://lynxobservatoire.netlify.app",
+    "http://localhost:3000",
+    "http://localhost:3001",
+];
 // Chat endpoint — rate limited at 3 questions per IP per day
 exports.claudeChat = functions.onRequest({ cors: corsOrigins, secrets: ["ANTHROPIC_API_KEY"] }, async (req, res) => {
     if (req.method !== "POST") {

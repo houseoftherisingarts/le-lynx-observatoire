@@ -108,7 +108,7 @@ export const derniereVisite = (): number => {
  * Marque la cloche comme vue a l'instant et rend le moment inscrit. Le retour
  * reste utilisable meme si le navigateur refuse d'ecrire.
  */
-export const marquerCloheVue = (): number => {
+export const marquerClocheVue = (): number => {
   const maintenant = Date.now();
   try {
     window.localStorage.setItem(CLE_DERNIERE_VISITE, String(maintenant));
@@ -117,9 +117,6 @@ export const marquerCloheVue = (): number => {
   }
   return maintenant;
 };
-
-/** Meme geste, sous l'orthographe complete. */
-export const marquerClocheVue = marquerCloheVue;
 
 // --- Abonnement -------------------------------------------------------------
 
@@ -178,6 +175,11 @@ export const suivreNotifications = (
     return () => {};
   }
 
+  // Un seul repere de temps pour tout l'abonnement. Il sert de date de repli
+  // quand la source n'en porte aucune, et il borne la fenetre des rendez-vous.
+  // Le figer evite qu'un item sans date reapparaisse apres « tout marquer lu ».
+  const debutAbonnement = Date.now();
+
   const paquets: Paquets = { message: [], alliance: [], veille: [], evenement: [] };
 
   const emettre = (): void => {
@@ -214,7 +216,9 @@ export const suivreNotifications = (
           type: 'message',
           titre: coupe(data.participantNoms?.[autre], MAX_TITRE) || 'Membre',
           detail: coupe(data.dernierMessage, MAX_DETAIL),
-          quand: enMillis(data.majLe),
+          // Une ecriture serveur encore en vol laisse majLe nul : sans repli, la
+          // cloche jetterait un message non lu sans jamais le dire.
+          quand: enMillis(data.majLe) || debutAbonnement,
           cible: d.id,
         });
       });
@@ -238,7 +242,7 @@ export const suivreNotifications = (
           type: 'alliance',
           titre: coupe(data.noms?.[de], MAX_TITRE) || 'Membre',
           detail: '',
-          quand: enMillis(data.majLe) || enMillis(data.creeLe),
+          quand: enMillis(data.majLe) || enMillis(data.creeLe) || debutAbonnement,
           cible: d.id,
         });
       });
@@ -275,21 +279,23 @@ export const suivreNotifications = (
 
   // Rendez-vous des 48 prochaines heures. L'inegalite et le tri portent sur le
   // meme champ, donc aucun index composite n'est requis.
-  const depuis = Date.now();
   const stopEvenements = onSnapshot(
     query(
       collection(db, 'events'),
-      where('startsAt', '>=', depuis),
+      where('startsAt', '>=', debutAbonnement),
       orderBy('startsAt', 'asc'),
       limit(LIMITE_EVENTS),
     ),
     (snap) => {
-      const jusqua = depuis + FENETRE_EVENEMENT_MS;
+      // Recalcule a chaque instantane : un onglet laisse ouvert deux jours
+      // continuerait autrement d'annoncer des rendez-vous deja passes.
+      const maintenant = Date.now();
+      const jusqua = maintenant + FENETRE_EVENEMENT_MS;
       const trouves: NotifItem[] = [];
       snap.docs.forEach((d) => {
         const data = d.data() as DocEvenement;
         const debut = Number(data.startsAt ?? 0);
-        if (!Number.isFinite(debut) || debut < depuis || debut > jusqua) return;
+        if (!Number.isFinite(debut) || debut < maintenant || debut > jusqua) return;
         const lieu = coupe(data.lieu, MAX_DETAIL);
         const quandLu = coupe(data.dateDisplay, MAX_DETAIL);
         trouves.push({

@@ -48,7 +48,7 @@ const T = {
         absenteTexte: "Cette cellule a été fermée ou son accès vous est refusé. Revenez à la liste pour en choisir une autre.",
         retour: 'Revenir à la liste',
         actionRatee: "Le geste n'a pas passé. Réessayez dans un instant.",
-        retirer: 'Retirer la demande',
+        retirer: 'Retirer la demande', statutAcceptee: 'Acceptée', statutRefusee: 'Refusée',
         formTitre: 'Fonder une cellule', nom: 'Nom de la cellule', municipalite: 'Municipalité', theme: 'Thème',
         description: 'Ce que la cellule fait', acces: 'Accès', accesOuvert: 'Ouverte à tous', accesDemande: 'Sur demande',
         creer: 'Créer la cellule', annuler: 'Annuler', motTitre: 'Votre mot au fondateur',
@@ -73,7 +73,7 @@ const T = {
         absenteTexte: 'This cell was closed or its access is denied to you. Go back to the list to pick another one.',
         retour: 'Back to the list',
         actionRatee: 'That did not go through. Try again in a moment.',
-        retirer: 'Remove the request',
+        retirer: 'Remove the request', statutAcceptee: 'Accepted', statutRefusee: 'Declined',
         formTitre: 'Found a cell', nom: 'Name of the cell', municipalite: 'Municipality', theme: 'Theme',
         description: 'What the cell does', acces: 'Access', accesOuvert: 'Open to all', accesDemande: 'By request',
         creer: 'Create the cell', annuler: 'Cancel', motTitre: 'Your word to the founder',
@@ -178,7 +178,7 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
         return () => {
             vivant = false;
         };
-    }, [detail?.id, detail?.membreUids?.length]);
+    }, [detail?.id, detail?.membreUids?.length, profile?.uid]);
 
     const moi = profile?.uid || '';
     const estMembre = (c: Cellule) => !!moi && (c.membreUids || []).includes(moi);
@@ -196,7 +196,7 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
         return suivreDemandes(ouvertId, setDemandes, () => setDemandes([]));
     }, [ouvertId, peutGerer]);
 
-    const enAttente = useMemo(() => demandes.filter((d) => d.statut === 'attente'), [demandes]);
+    const enAttente = useMemo(() => demandes.filter((d) => (d.statut || 'attente') === 'attente'), [demandes]);
 
     const handleCreer = async () => {
         if (!profile || form.nom.trim().length < 2) return;
@@ -509,11 +509,11 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                                         </div>
                                         {demandes.length > enAttente.length && (
                                             <div className="mt-4 space-y-2">
-                                                {demandes.filter((d) => d.statut !== 'attente').map((d) => (
+                                                {demandes.filter((d) => (d.statut || 'attente') !== 'attente').map((d) => (
                                                     <div key={d.id} className="flex items-center gap-2 text-xs text-slate-500">
                                                         <span className="truncate flex-1">{d.nom}</span>
                                                         <span className={`${etiquetteClasse} ${d.statut === 'acceptee' ? 'text-emerald-600' : 'text-slate-600'}`}>
-                                                            {d.statut === 'acceptee' ? t.accepter : t.refuser}
+                                                            {d.statut === 'acceptee' ? t.statutAcceptee : t.statutRefusee}
                                                         </span>
                                                         <button
                                                             onClick={() => effacerDemande(detail.id, d.uid).catch(() => setErreurAction(true))}
@@ -563,7 +563,7 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                                             onChange={(e) => setTexte(e.target.value)}
                                             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEnvoyer(); } }}
                                             placeholder={t.ecrire}
-                                            className={champ}
+                                            className={`${champ} min-w-0`}
                                         />
                                         <button onClick={handleEnvoyer} disabled={!texte.trim()} className="w-11 h-11 shrink-0 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-full flex items-center justify-center transition-all">
                                             <Send size={16} />
