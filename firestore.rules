@@ -58,8 +58,10 @@ service cloud.firestore {
     match /membres/{userId} {
       allow read: if signedIn();
       allow create: if isOwner(userId) && str('nom', 120);
+      // Le champ « verifie » appartient a l'administration, pas a la personne.
       allow update: if (isOwner(userId)
-                        && !('verifie' in request.resource.data.diff(resource.data).affectedKeys()))
+                        && !request.resource.data.diff(resource.data)
+                              .affectedKeys().hasAny(['verifie']))
                     || isAdmin();
       allow delete: if isAdmin();
     }

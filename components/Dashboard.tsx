@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getSituationSummary } from '../services/claudeService';
 import { AuthState, Language, CalmPost } from '../types';
 import { subscribeToCalmPosts, createCalmPost, CalmEntry } from '../services/socialService';
+import { collection, doc, onSnapshot, query, orderBy, limit, where } from 'firebase/firestore';
+import { db } from '../services/firebaseConfig';
 import { Users, AlertTriangle, Activity, Droplets, ChevronDown, CheckCircle, Target, Shield, Clock, AlertOctagon, ExternalLink, X, Phone, FileText, Feather, ArrowRight, Hand, PenTool, BookOpen, HelpCircle, Eye, Share2, Facebook, Instagram, Twitter, Check, Copy, RefreshCw, Loader, Download, Smartphone, Map, Lock, Unlock, Plus, Edit3 } from 'lucide-react';
 
 interface DashboardProps {
@@ -69,10 +71,46 @@ const Dashboard: React.FC<DashboardProps> = ({ authState, setViewState, onNaviga
 
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Base "NO" votes from the 2025 Referendum (Simulated real data point)
-  const REFERENDUM_NO_VOTES = 3842; 
-  const PLATFORM_USERS = 1250;
-  const engagementCount = REFERENDUM_NO_VOTES + PLATFORM_USERS;
+  // Compteur d'engagement : le nombre de fiches réellement ouvertes sur la
+  // plateforme. Aucun chiffre inventé ne s'affiche ici.
+  // Le total est tenu par une fonction serveur, parce que les fiches elles-memes
+  // ne sont lisibles que par les personnes connectees.
+  const [nbMembres, setNbMembres] = useState<number | null>(null);
+  useEffect(() => {
+      const arreter = onSnapshot(
+          doc(db, 'auditStatus', 'reseau'),
+          (snap) => setNbMembres(snap.exists() ? Number(snap.data()?.nbMembres ?? 0) : 0),
+          () => setNbMembres(null)
+      );
+      return arreter;
+  }, []);
+
+  // Le prochain rendez-vous vient du registre des événements, pas d'une date figée.
+  const [prochainEvenement, setProchainEvenement] = useState<{
+      title: string;
+      description: string;
+      dateDisplay: string;
+      startsAt: number;
+  } | null>(null);
+  useEffect(() => {
+      const maintenant = Date.now();
+      const arreter = onSnapshot(
+          query(collection(db, 'events'), where('startsAt', '>=', maintenant), orderBy('startsAt', 'asc'), limit(1)),
+          (snap) => {
+              const d = snap.docs[0];
+              if (!d) { setProchainEvenement(null); return; }
+              const data = d.data() as Record<string, unknown>;
+              setProchainEvenement({
+                  title: String(data.title ?? ''),
+                  description: String(data.description ?? ''),
+                  dateDisplay: String(data.dateDisplay ?? ''),
+                  startsAt: Number(data.startsAt ?? 0),
+              });
+          },
+          () => setProchainEvenement(null)
+      );
+      return arreter;
+  }, []);
 
   // Translations
   const translations = {
@@ -315,12 +353,26 @@ const Dashboard: React.FC<DashboardProps> = ({ authState, setViewState, onNaviga
       setIsPostingCalm(false);
   };
 
-  const nextAction = {
-      title: "Séance du Conseil des Maires",
-      description: "Présence cruciale à la prochaine séance publique de la MRC Papineau. Exigeons le respect du moratoire.",
-      deadline: "Mercredi 19 Nov, 18h30",
-      impact: "Critique"
-  };
+  const joursAvant = prochainEvenement
+      ? Math.max(0, Math.round((prochainEvenement.startsAt - Date.now()) / 86400000))
+      : null;
+
+  const nextAction = prochainEvenement
+      ? {
+            title: prochainEvenement.title,
+            description: prochainEvenement.description,
+            deadline: prochainEvenement.dateDisplay,
+            impact: joursAvant !== null && joursAvant <= 7 ? 'Immédiat' : 'Décisif',
+        }
+      : {
+            title: language === 'en' ? 'No date on the calendar yet' : "Aucune date au calendrier pour l'instant",
+            description:
+                language === 'en'
+                    ? 'The next meeting appears here as soon as someone adds it under the network events.'
+                    : "Le prochain rendez-vous apparaît ici dès qu'une personne l'inscrit dans les événements du réseau.",
+            deadline: language === 'en' ? 'To be set' : 'À venir',
+            impact: language === 'en' ? 'Open' : 'Ouvert',
+        };
 
   const getIconForType = (type: string) => {
       switch (type) {
@@ -910,10 +962,15 @@ const Dashboard: React.FC<DashboardProps> = ({ authState, setViewState, onNaviga
                         </div>
                     </div>
                     <div className="text-6xl font-serif text-white mb-3 tracking-tighter">
-                        {engagementCount.toLocaleString()}
+                        {nbMembres === null ? '—' : nbMembres.toLocaleString('fr-CA')}
                     </div>
                     <p className="text-sm text-slate-500 font-medium tracking-wide uppercase">
                         {t.engagedCitizens}
+                    </p>
+                    <p className="text-[11px] text-slate-600 mt-3 leading-relaxed max-w-xs">
+                        {language === 'en'
+                            ? 'Members of the Observatory. In the referendum of 31 August 2025, over 90 percent of the citizens consulted in five municipalities rejected the project.'
+                            : "Membres de l'Observatoire. Au référendum du 31 août 2025, plus de 90 pour cent des citoyens consultés dans cinq municipalités ont rejeté le projet."}
                     </p>
                 </div>
                 {authState.isAuthenticated ? (

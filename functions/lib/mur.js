@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ancienMurReaction = exports.murCommentaireEcrit = exports.murVoteEcrit = void 0;
+exports.compteurMembres = exports.ancienMurReaction = exports.murCommentaireEcrit = exports.murVoteEcrit = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 /**
@@ -69,5 +69,17 @@ exports.ancienMurReaction = (0, firestore_1.onDocumentWritten)({ document: "post
         return;
     const compte = await db.collection(`posts/${event.params.postId}/reactions`).count().get();
     await ref.update({ reactionCount: compte.data().count });
+});
+/**
+ * Compteur public de membres. Les fiches ne sont lisibles que par les personnes
+ * connectees, donc le tableau de bord public a besoin d'un total tenu a part.
+ */
+exports.compteurMembres = (0, firestore_1.onDocumentWritten)({ document: "membres/{uid}", region: REGION }, async () => {
+    const db = admin.firestore();
+    const compte = await db.collection("membres").count().get();
+    await db
+        .collection("auditStatus")
+        .doc("reseau")
+        .set({ nbMembres: compte.data().count, majLe: new Date().toISOString() }, { merge: true });
 });
 //# sourceMappingURL=mur.js.map

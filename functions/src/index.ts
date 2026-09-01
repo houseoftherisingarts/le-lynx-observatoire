@@ -190,7 +190,7 @@ N'utilise pas de markdown gras ou italique. Juste le texte brut avec les sépara
 export { dailyAudit, runAuditNow } from "./audit";
 
 // Comptes du Mur, tenus par le serveur
-export { murVoteEcrit, murCommentaireEcrit, ancienMurReaction } from "./mur";
+export { murVoteEcrit, murCommentaireEcrit, ancienMurReaction, compteurMembres } from "./mur";
 
 // Attribution du role d'administration
 export { verifierRole } from "./roles";

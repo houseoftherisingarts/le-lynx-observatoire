@@ -83,3 +83,19 @@ export const ancienMurReaction = onDocumentWritten(
     await ref.update({ reactionCount: compte.data().count });
   }
 );
+
+/**
+ * Compteur public de membres. Les fiches ne sont lisibles que par les personnes
+ * connectees, donc le tableau de bord public a besoin d'un total tenu a part.
+ */
+export const compteurMembres = onDocumentWritten(
+  { document: "membres/{uid}", region: REGION },
+  async () => {
+    const db = admin.firestore();
+    const compte = await db.collection("membres").count().get();
+    await db
+      .collection("auditStatus")
+      .doc("reseau")
+      .set({ nbMembres: compte.data().count, majLe: new Date().toISOString() }, { merge: true });
+  }
+);
