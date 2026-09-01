@@ -487,13 +487,13 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
 
                                 {peutGerer && (
                                     <div className="pt-6 border-t border-white/5">
-                                        <span className={`${etiquetteClasse} text-amber-500 block mb-4`}>{t.demandes} · {demandes.length}</span>
-                                        {demandes.length === 0 && <p className="text-xs text-slate-500">{t.aucuneDemande}</p>}
+                                        <span className={`${etiquetteClasse} text-amber-500 block mb-4`}>{t.demandes} · {enAttente.length}</span>
+                                        {enAttente.length === 0 && <p className="text-xs text-slate-500">{t.aucuneDemande}</p>}
                                         <div className="space-y-4">
-                                            {demandes.map((d) => (
+                                            {enAttente.map((d) => (
                                                 <div key={d.id} className="glass-card rounded-2xl border border-white/5 p-4">
-                                                    <p className="text-sm text-slate-200 font-bold mb-1">{d.nom}</p>
-                                                    <p className="text-xs text-slate-400 leading-relaxed mb-3">{d.mot}</p>
+                                                    <p className="text-sm text-slate-200 font-bold mb-1 break-words">{d.nom}</p>
+                                                    <p className="text-xs text-slate-400 leading-relaxed mb-3 break-words">{d.mot}</p>
                                                     <div className="flex gap-2">
                                                         <button onClick={() => handleReponse(d, true)} className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold transition-all">{t.accepter}</button>
                                                         <button onClick={() => handleReponse(d, false)} className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-[11px] font-bold transition-all">{t.refuser}</button>
@@ -501,6 +501,25 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                                                 </div>
                                             ))}
                                         </div>
+                                        {demandes.length > enAttente.length && (
+                                            <div className="mt-4 space-y-2">
+                                                {demandes.filter((d) => d.statut !== 'attente').map((d) => (
+                                                    <div key={d.id} className="flex items-center gap-2 text-xs text-slate-500">
+                                                        <span className="truncate flex-1">{d.nom}</span>
+                                                        <span className={`${etiquetteClasse} ${d.statut === 'acceptee' ? 'text-emerald-600' : 'text-slate-600'}`}>
+                                                            {d.statut === 'acceptee' ? t.accepter : t.refuser}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => effacerDemande(detail.id, d.uid).catch(() => setErreurAction(true))}
+                                                            className="text-slate-600 hover:text-white p-1 shrink-0"
+                                                            aria-label={t.retirer}
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
