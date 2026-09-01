@@ -65,7 +65,7 @@ const champ =
   'w-full rounded-2xl bg-black/40 border border-white/5 px-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all focus:border-emerald-500/50 focus:bg-black/60';
 const etiquette = 'block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2';
 
-const PoserQuestion: React.FC<PoserQuestionProps> = ({ language, origin = 'inscription' }) => {
+const PoserQuestion: React.FC<PoserQuestionProps> = ({ language, origin = 'inscription' as QuestionOrigin }) => {
   const t = language === 'fr' ? T.fr : T.en;
   const [name, setName] = useState('');
   const [town, setTown] = useState('');

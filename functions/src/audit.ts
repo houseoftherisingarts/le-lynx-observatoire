@@ -3,6 +3,8 @@ import * as functions from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "crypto";
+import { collectFeedItems, FeedItem } from "./sources";
+import { seedIfNeeded } from "./seed";
 
 const db = admin.firestore();
 
@@ -115,12 +117,41 @@ function sortableDate(raw: string, fallbackIso: string): string {
   return fallbackIso.slice(0, 10);
 }
 
-export async function runAudit(trigger: string): Promise<{ found: number; added: number; runId: string }> {
+/** Resume les items de fils en une liste compacte pour le modele. */
+function feedDigest(items: FeedItem[]): string {
+  return items
+    .slice(0, 60)
+    .map(
+      (i, n) =>
+        `${n + 1}. [${i.source.name} | ${i.source.category}] ${i.title}\n   ${i.link}\n   ${i.pubDate}\n   ${i.description.slice(0, 300)}`
+    )
+    .join("\n");
+}
+
+export async function runAudit(
+  trigger: string
+): Promise<{ found: number; added: number; feedItems: number; seeded: number; runId: string }> {
   const startedAt = new Date();
   const nowIso = startedAt.toISOString();
-  const sinceLabel = "les 30 derniers jours, en insistant sur les 10 derniers";
+  const db2 = db;
 
+  // Le socle verifie se pose une seule fois, avant toute chose.
+  const seeded = await seedIfNeeded(db2);
+
+  // Passe 1 : les fils machine, deterministes et sans invention possible.
+  const feedItems = await collectFeedItems(45);
+
+  // Passe 2 : le modele classe les items des fils, puis cherche sur le web ce
+  // qu'aucun fil ne publie (registres, proces-verbaux municipaux, Gazette).
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const userMessage =
+    auditPrompt("les 30 derniers jours, en insistant sur les 10 derniers") +
+    (feedItems.length
+      ? `\n\nRELEVE BRUT DES FILS SURVEILLES, releve a l'instant. Classe d'abord ce qui touche au dossier, reprends l'adresse telle quelle, et ecris le resume en francais dans tes mots :\n\n${feedDigest(
+          feedItems
+        )}`
+      : "\n\nAucun fil n'a repondu cette fois. Appuie-toi entierement sur la recherche web.");
 
   const response = await anthropic.messages.create({
     model: "claude-opus-5",
@@ -133,7 +164,7 @@ export async function runAudit(trigger: string): Promise<{ found: number; added:
         max_uses: 25,
       } as unknown as Anthropic.Tool,
     ],
-    messages: [{ role: "user", content: auditPrompt(sinceLabel) }],
+    messages: [{ role: "user", content: userMessage }],
   });
 
   const text = response.content
@@ -143,13 +174,14 @@ export async function runAudit(trigger: string): Promise<{ found: number; added:
 
   const items = extractJsonArray(text).slice(0, MAX_ITEMS);
 
-  const runRef = db.collection("auditRuns").doc();
+  const runRef = db2.collection("auditRuns").doc();
   let added = 0;
 
-  const batch = db.batch();
+  const batch = db2.batch();
   for (const item of items) {
     if (!item?.url || !item?.title) continue;
-    const ref = db.collection("news").doc(docIdFor(item));
+    if (!/^https?:\/\//i.test(item.url)) continue;
+    const ref = db2.collection("news").doc(docIdFor(item));
     batch.set(
       ref,
       {
@@ -175,25 +207,28 @@ export async function runAudit(trigger: string): Promise<{ found: number; added:
     trigger,
     startedAt: nowIso,
     finishedAt: new Date().toISOString(),
+    feedItems: feedItems.length,
     found: items.length,
     written: added,
+    seeded,
     model: response.model,
     ok: items.length > 0,
     rawPreview: text.slice(0, 1500),
   });
 
   // Etat public de la veille, lisible par tout le monde sur la page Nouvelles.
-  batch.set(db.collection("auditStatus").doc("latest"), {
+  batch.set(db2.collection("auditStatus").doc("latest"), {
     lastRunAt: new Date().toISOString(),
     trigger,
     found: items.length,
+    feedItems: feedItems.length,
     written: added,
     ok: items.length > 0,
   });
 
   await batch.commit();
 
-  return { found: items.length, added, runId: runRef.id };
+  return { found: items.length, added, feedItems: feedItems.length, seeded, runId: runRef.id };
 }
 
 /** Une passe par jour, 6h05 heure de l'Est. */
