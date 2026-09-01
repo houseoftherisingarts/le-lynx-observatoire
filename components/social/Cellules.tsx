@@ -48,6 +48,7 @@ const T = {
         absenteTexte: "Cette cellule a été fermée ou son accès vous est refusé. Revenez à la liste pour en choisir une autre.",
         retour: 'Revenir à la liste',
         actionRatee: "Le geste n'a pas passé. Réessayez dans un instant.",
+        retirer: 'Retirer la demande',
         formTitre: 'Fonder une cellule', nom: 'Nom de la cellule', municipalite: 'Municipalité', theme: 'Thème',
         description: 'Ce que la cellule fait', acces: 'Accès', accesOuvert: 'Ouverte à tous', accesDemande: 'Sur demande',
         creer: 'Créer la cellule', annuler: 'Annuler', motTitre: 'Votre mot au fondateur',
@@ -72,6 +73,7 @@ const T = {
         absenteTexte: 'This cell was closed or its access is denied to you. Go back to the list to pick another one.',
         retour: 'Back to the list',
         actionRatee: 'That did not go through. Try again in a moment.',
+        retirer: 'Remove the request',
         formTitre: 'Found a cell', nom: 'Name of the cell', municipalite: 'Municipality', theme: 'Theme',
         description: 'What the cell does', acces: 'Access', accesOuvert: 'Open to all', accesDemande: 'By request',
         creer: 'Create the cell', annuler: 'Cancel', motTitre: 'Your word to the founder',
@@ -163,8 +165,12 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
         };
     }, [ouvertId, profile?.uid]);
 
+    // Les fiches `membres` ne se lisent qu'avec un compte.
     useEffect(() => {
-        if (!detail) return;
+        if (!detail || !profile) {
+            setFiches([]);
+            return;
+        }
         let vivant = true;
         chargerMembres(detail.membreUids || []).then((liste) => {
             if (vivant) setFiches(liste);
