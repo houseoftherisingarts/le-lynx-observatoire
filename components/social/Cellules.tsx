@@ -195,6 +195,7 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
     const handleCreer = async () => {
         if (!profile || form.nom.trim().length < 2) return;
         setEnCours(true);
+        setErreurAction(false);
         try {
             const id = await creerCellule(
                 { uid: profile.uid, nom: profile.displayName },
