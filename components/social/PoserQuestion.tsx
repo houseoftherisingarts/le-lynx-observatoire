@@ -104,7 +104,7 @@ const PoserQuestion: React.FC<PoserQuestionProps> = ({ language, origin = 'inscr
   if (envoyee) {
     return (
       <div className="w-full flex justify-center px-4 py-10 animate-fade-in">
-        <div className="glass-card w-full max-w-[32rem] rounded-3xl border border-white/5 p-8 text-center">
+        <div className="glass-card w-full max-w-[32rem] rounded-3xl border border-white/5 p-6 text-center md:p-8">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20">
             <CheckCircle2 className="h-7 w-7 text-emerald-400" />
           </div>
@@ -124,7 +124,7 @@ const PoserQuestion: React.FC<PoserQuestionProps> = ({ language, origin = 'inscr
 
   return (
     <div className="w-full flex justify-center px-4 py-10 animate-fade-in">
-      <form onSubmit={soumettre} className="glass-card w-full max-w-[32rem] rounded-3xl border border-white/5 p-8">
+      <form onSubmit={soumettre} noValidate className="glass-card w-full max-w-[32rem] rounded-3xl border border-white/5 p-6 md:p-8">
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <MessageCircleQuestion className="h-4 w-4 text-emerald-400" />
@@ -143,6 +143,7 @@ const PoserQuestion: React.FC<PoserQuestionProps> = ({ language, origin = 'inscr
               id="q-nom"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
               maxLength={120}
               placeholder={t.nomPlaceholder}
               className={champ}
@@ -168,6 +169,7 @@ const PoserQuestion: React.FC<PoserQuestionProps> = ({ language, origin = 'inscr
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 maxLength={120}
                 placeholder={t.courrielPlaceholder}
                 className={champ}
@@ -193,7 +195,7 @@ const PoserQuestion: React.FC<PoserQuestionProps> = ({ language, origin = 'inscr
         </div>
 
         {erreur && (
-          <p className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
+          <p role="alert" className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-300">
             {erreur}
           </p>
         )}

@@ -141,23 +141,27 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
         return stop;
     }, []);
 
+    // La cellule est lisible de tous ; le fil et les demandes exigent un compte
+    // (regles Firestore `allow read: if signedIn()`), donc on ne s'y abonne pas
+    // sans profil, sinon la requete entiere est refusee.
     useEffect(() => {
         if (!ouvertId) {
             setDetail(null);
             setMessages([]);
-            setDemandes([]);
             setFiches([]);
             return;
         }
         const stopCellule = suivreCellule(ouvertId, setDetail, () => setDetail(null));
+        if (!profile) {
+            setMessages([]);
+            return stopCellule;
+        }
         const stopMessages = suivreMessagesCellule(ouvertId, setMessages, () => setMessages([]));
-        const stopDemandes = suivreDemandes(ouvertId, setDemandes, () => setDemandes([]));
         return () => {
             stopCellule();
             stopMessages();
-            stopDemandes();
         };
-    }, [ouvertId]);
+    }, [ouvertId, profile?.uid]);
 
     useEffect(() => {
         if (!detail) return;
