@@ -231,7 +231,7 @@ const AppContent: React.FC = () => {
           />
         );
       case ViewState.NEWS:
-        return <NewsFeed language={language} />;
+        return <NewsFeed language={language} isAdmin={isAdmin} />;
       case ViewState.CHAT:
         return <ChatInterface language={language} />;
       case ViewState.ARCHIVES:

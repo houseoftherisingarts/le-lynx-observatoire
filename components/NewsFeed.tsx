@@ -18,10 +18,15 @@ import {
   Landmark,
   AlertTriangle,
   Inbox,
+  RefreshCw,
 } from 'lucide-react';
+import { auth } from '../services/firebaseConfig';
+
+const FONCTIONS = 'https://us-central1-le-lynx-observatoire.cloudfunctions.net';
 
 interface NewsFeedProps {
   language: Language;
+  isAdmin?: boolean;
 }
 
 const ORDER: NewsCategory[] = [
@@ -34,12 +39,39 @@ const ORDER: NewsCategory[] = [
   'media',
 ];
 
-export const NewsFeed: React.FC<NewsFeedProps> = ({ language }) => {
+export const NewsFeed: React.FC<NewsFeedProps> = ({ language, isAdmin = false }) => {
   const [news, setNews] = useState<AuditNewsItem[]>([]);
   const [status, setStatus] = useState<AuditStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [filter, setFilter] = useState<NewsCategory | 'tout'>('tout');
+  const [veilleEnCours, setVeilleEnCours] = useState(false);
+  const [veilleMessage, setVeilleMessage] = useState<string | null>(null);
+
+  // L'administration peut declencher une passe sans attendre 6 h 05.
+  const lancerLaVeille = async () => {
+    const personne = auth.currentUser;
+    if (!personne) return;
+    setVeilleEnCours(true);
+    setVeilleMessage(null);
+    try {
+      const jeton = await personne.getIdToken();
+      const res = await fetch(`${FONCTIONS}/runAuditNow`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${jeton}` },
+      });
+      const data = (await res.json()) as { added?: number; feedItems?: number; error?: string };
+      setVeilleMessage(
+        res.ok
+          ? `${data.added ?? 0} éléments déposés, ${data.feedItems ?? 0} relevés dans les fils.`
+          : data.error || "La passe n'a pas abouti."
+      );
+    } catch {
+      setVeilleMessage("La passe n'a pas abouti.");
+    } finally {
+      setVeilleEnCours(false);
+    }
+  };
 
   useEffect(() => {
     const stopNews = subscribeToNews(
@@ -79,6 +111,8 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ language }) => {
       tooltip:
         'GESTIM, Gazette officielle, ministère des Ressources naturelles, BAPE, Assemblée nationale, MRC de Papineau et conseils municipaux, Lomiko Metals, Le Droit, Radio-Canada, Info Petite-Nation.',
       high: 'Prioritaire',
+      lancer: 'Lancer la veille maintenant',
+      enCours: 'Passe en cours',
     };
     const en = {
       ...fr,
@@ -97,6 +131,8 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ language }) => {
       read: 'Read at the source',
       count: (n: number) => `${n} item${n > 1 ? 's' : ''} tracked`,
       high: 'Priority',
+      lancer: 'Run the sweep now',
+      enCours: 'Sweep running',
     };
     return language === 'en' ? en : fr;
   }, [language]);
@@ -141,6 +177,19 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ language }) => {
                 {govCount} · {t.gov}
               </span>
             </div>
+            {isAdmin && (
+              <button
+                onClick={lancerLaVeille}
+                disabled={veilleEnCours}
+                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest text-slate-300 transition-all"
+              >
+                <RefreshCw size={12} className={veilleEnCours ? 'animate-spin' : ''} />
+                {veilleEnCours ? t.enCours : t.lancer}
+              </button>
+            )}
+            {veilleMessage && (
+              <p className="mt-2 text-[10px] text-slate-500 leading-relaxed">{veilleMessage}</p>
+            )}
           </div>
         </div>
 

@@ -65,7 +65,7 @@ const corsOrigins = [
   "http://localhost:3001",
 ];
 
-// Chat endpoint — rate limited at 3 questions per IP per day
+// Chat endpoint, rate limited at 3 questions per IP per day
 export const claudeChat = functions.onRequest(
   { cors: corsOrigins, secrets: ["ANTHROPIC_API_KEY"] },
   async (req, res) => {
@@ -112,7 +112,11 @@ export const claudeChat = functions.onRequest(
         messages: fullMessages,
       });
 
-      const text = response.content[0].type === "text" ? response.content[0].text : "";
+      const text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n")
+        .trim();
 
       res.json({ text, remaining });
     } catch (err) {
@@ -122,7 +126,7 @@ export const claudeChat = functions.onRequest(
   }
 );
 
-// Dashboard summary — cached in Firestore for 6h, no per-user rate limit
+// Dashboard summary, cached in Firestore for 6h, no per-user rate limit
 export const claudeSummary = functions.onRequest(
   { cors: corsOrigins, secrets: ["ANTHROPIC_API_KEY"] },
   async (req, res) => {
@@ -146,35 +150,58 @@ export const claudeSummary = functions.onRequest(
     try {
       const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+      // Le resume se construit sur la veille du jour, pas sur la memoire du
+      // modele. Sans nouvelles en base, aucune analyse n'est produite.
+      const veille = await db
+        .collection("news")
+        .orderBy("sortDate", "desc")
+        .limit(25)
+        .get();
+
+      const releve = veille.docs
+        .map((d) => {
+          const n = d.data();
+          return `[${n.category} | ${n.date}] ${n.title}\n    ${String(n.summary || "").slice(0, 400)}\n    ${n.url}`;
+        })
+        .join("\n\n");
+
       const response = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 600,
+        model: "claude-opus-5",
+        max_tokens: 1200,
         system: SYSTEM_PROMPT,
         messages: [
           {
             role: "user",
-            content: `Génère une analyse de la situation actuelle formatée STRICTEMENT comme suit pour le parsing :
+            content: `Voici la veille la plus recente de la plateforme, relevee automatiquement. Appuie ton analyse UNIQUEMENT sur ce releve, sans rien ajouter de memoire.
 
-INTRO: [Un court paragraphe de 2-3 phrases résumant l'ambiance générale (tensions, calme, ou mobilisation).]
+${releve || "Aucune nouvelle en base pour l'instant."}
+
+Genere une analyse de la situation actuelle formatee STRICTEMENT comme suit pour le parsing :
+
+INTRO: [Un court paragraphe de deux a trois phrases entieres qui dit ou en est le dossier aujourd'hui.]
 ###
 TYPE: DANGER
-TITRE: [Titre court sur l'état du projet minier]
-DETAIL: [Détails précis sur les activités de Lomiko, les forages ou les levées de fonds. Mentionne les claims.]
+TITRE: [Titre court sur l'etat du projet minier]
+DETAIL: [Deux a quatre phrases entieres sur l'etat du projet et de la miniere, tirees du releve. Nomme les dates et les chiffres exacts.]
 ###
 TYPE: BOUCLIER
 TITRE: [Titre court sur la mobilisation citoyenne]
-DETAIL: [Détails sur l'Alliance Petite Nation, les discussions Facebook récentes, les pétitions ou les actions juridiques en cours.]
+DETAIL: [Deux a quatre phrases entieres sur la mobilisation citoyenne et municipale, tirees du releve.]
 ###
 TYPE: PLUME
-TITRE: [Titre court sur la position Autochtone]
-DETAIL: [La position de Kitigan Zibi Anishinabeg concernant le territoire et le projet.]
+TITRE: [Titre court sur la position anishinabe]
+DETAIL: [Deux a quatre phrases entieres sur la position anishinabe et sur le territoire non cede. Si le releve ne dit rien de neuf, dis-le franchement plutot que d'inventer.]
 
-N'utilise pas de markdown gras ou italique. Juste le texte brut avec les séparateurs ###.`,
+N'utilise pas de markdown gras ou italique. Juste le texte brut avec les separateurs ###. Ecris en francais avec les accents corrects, en phrases entieres, sans tiret cadratin.`,
           },
         ],
       });
 
-      const text = response.content[0].type === "text" ? response.content[0].text : "";
+      const text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("\n")
+        .trim();
 
       await cacheRef.set({ text, createdAt: Date.now() });
 

@@ -962,7 +962,7 @@ const Dashboard: React.FC<DashboardProps> = ({ authState, setViewState, onNaviga
                         </div>
                     </div>
                     <div className="text-6xl font-serif text-white mb-3 tracking-tighter">
-                        {nbMembres === null ? '—' : nbMembres.toLocaleString('fr-CA')}
+                        {nbMembres === null ? '·' : nbMembres.toLocaleString('fr-CA')}
                     </div>
                     <p className="text-sm text-slate-500 font-medium tracking-wide uppercase">
                         {t.engagedCitizens}

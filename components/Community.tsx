@@ -665,7 +665,7 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                 </div>
             )}
 
-            {/* Auth Modal — Google Sign-In */}
+            {/* Fenêtre de connexion Google */}
             {isAuthModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
                     <div className="glass-card w-full max-w-sm rounded-[32px] overflow-hidden relative border border-white/10 bg-[#0a0a0a]">
@@ -742,7 +742,7 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                         ) : (
                             <div className="flex items-center gap-2 mt-1 cursor-pointer" onClick={() => setIsAuthModalOpen(true)}>
                                 <span className="w-2 h-2 rounded-full bg-slate-500"></span>
-                                <p className="text-slate-500 text-sm font-medium hover:text-white transition-colors underline decoration-dotted underline-offset-4">{t.guest} — {t.loginToAct}</p>
+                                <p className="text-slate-500 text-sm font-medium hover:text-white transition-colors underline decoration-dotted underline-offset-4">{t.guest}. {t.loginToAct}</p>
                             </div>
                         )}
                     </div>
@@ -895,6 +895,21 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                                    <List size={16}/> {t.actions.listTitle}
                                 </h3>
                                 <div className="space-y-4">
+                                    {chargementActions && (
+                                        <div className="glass-card p-6 rounded-3xl animate-pulse">
+                                            <div className="h-4 bg-white/10 rounded w-1/3 mb-3" />
+                                            <div className="h-4 bg-white/5 rounded w-full" />
+                                        </div>
+                                    )}
+                                    {!chargementActions && actions.length === 0 && (
+                                        <div className="glass-card p-10 rounded-3xl border border-white/5 text-center">
+                                            <Megaphone className="mx-auto text-slate-600 mb-4" size={26} />
+                                            <p className="text-white font-bold mb-2">Aucune action inscrite pour l'instant</p>
+                                            <p className="text-slate-400 text-sm font-light max-w-md mx-auto leading-relaxed">
+                                                Les rendez-vous déjà connus vivent dans l'onglet Rendez-vous du réseau. Ici se posent les mobilisations que vous organisez vous-même, et la première ouvre la liste.
+                                            </p>
+                                        </div>
+                                    )}
                                     {actions.map(action => renderActionCard(action))}
                                 </div>
                             </div>
@@ -922,7 +937,7 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                                     tag: "Site Web"
                                 },
                                 {
-                                    title: "Projet La Loutre — Documents Lomiko",
+                                    title: "Projet La Loutre : les documents de Lomiko",
                                     desc: "Rapports techniques et mises à jour officielles",
                                     url: "https://lomiko.com/fr/projets/projet-la-loutre/",
                                     tag: "Site Web"
@@ -940,13 +955,13 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                                     tag: "Nation"
                                 },
                                 {
-                                    title: "Groupe Facebook — Action Citoyenne Petite-Nation",
+                                    title: "Groupe Facebook Action Citoyenne Petite-Nation",
                                     desc: "Événements, mobilisation, pouls de la communauté",
                                     url: "https://www.facebook.com/groups/actioncitoyannepetitenation",
                                     tag: "Communauté"
                                 },
                                 {
-                                    title: "Archives BAPE — Rapports eau et mines",
+                                    title: "Archives du BAPE sur l'eau et les mines",
                                     desc: "Évaluations environnementales officielles du Québec",
                                     url: "https://www.bape.gouv.qc.ca",
                                     tag: "Gouvernement"
