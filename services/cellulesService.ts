@@ -218,13 +218,12 @@ export const repondreDemande = async (
   celluleId: string,
   uid: string,
   accepte: boolean,
-  membreUids: string[],
-  nbActuel: number
+  membreUids: string[]
 ): Promise<void> => {
-  if (accepte && !membreUids.includes(uid)) {
+  if (accepte && !(membreUids || []).includes(uid)) {
     await updateDoc(doc(db, 'cellules', celluleId), {
       membreUids: arrayUnion(uid),
-      nbMembres: Math.max(0, nbActuel) + 1,
+      nbMembres: compteAvec(membreUids, uid),
     });
   }
   await updateDoc(doc(db, 'cellules', celluleId, 'demandes', uid), {

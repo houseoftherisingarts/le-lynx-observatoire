@@ -4,7 +4,9 @@ import {
   collection,
   deleteDoc,
   doc,
+  increment,
   onSnapshot,
+  orderBy,
   query,
   limit,
   serverTimestamp,
@@ -16,7 +18,10 @@ import { db } from './firebaseConfig';
 /**
  * Questions du public, posees avant ou pendant une assemblee citoyenne.
  * Collection Firestore : questions/{id}.
- * Le tri se fait cote client pour eviter un index composite.
+ * La requete garde les 500 plus recentes (orderBy sur un seul champ, index automatique),
+ * puis le tri d'affichage se refait cote client pour placer une question a peine ecrite
+ * (createdAt encore nul en local) a la fin plutot qu'au debut.
+ * ponytail: une question sans createdAt (import manuel, ancienne donnee) sort de la requete.
  */
 
 export type QuestionOrigin = 'inscription' | 'direct';
@@ -71,7 +76,7 @@ export const suivreQuestions = (
   onError?: (erreur: Error) => void
 ): (() => void) =>
   onSnapshot(
-    query(collection(db, 'questions'), limit(500)),
+    query(collection(db, 'questions'), orderBy('createdAt', 'desc'), limit(500)),
     (snap) => {
       const liste = snap.docs.map((d) => {
         const data = d.data() as Partial<Question>;
@@ -118,14 +123,14 @@ export const poserQuestion = async (data: NouvelleQuestion): Promise<string> => 
   return ref.id;
 };
 
-/** Appui d'une personne connectee. Ne touche que upvotes et upvoterIds. */
-export const appuyerQuestion = async (
-  id: string,
-  uid: string,
-  upvotesActuels: number
-): Promise<void> => {
+/**
+ * Appui d'une personne connectee. Ne touche que upvotes et upvoterIds,
+ * les deux seuls champs que les regles laissent bouger a un membre.
+ * Le compte s'incremente cote serveur : deux appuis simultanes ne s'ecrasent plus.
+ */
+export const appuyerQuestion = async (id: string, uid: string): Promise<void> => {
   await updateDoc(doc(db, 'questions', id), {
-    upvotes: Math.max(0, upvotesActuels) + 1,
+    upvotes: increment(1),
     upvoterIds: arrayUnion(uid),
   });
 };
