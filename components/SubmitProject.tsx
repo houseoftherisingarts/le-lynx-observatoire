@@ -311,7 +311,7 @@ const SubmitProject: React.FC<SubmitProjectProps> = ({ onSubmit, language }) => 
 
                         {erreurEnvoi && (
                             <p className="text-xs text-red-400 mb-3 leading-relaxed">
-                                L'envoi n'a pas abouti. Verifiez votre connexion, puis relancez le bouton.
+                                L'envoi n'a pas abouti. Vérifiez votre connexion, puis relancez le bouton.
                             </p>
                         )}
                         <button 

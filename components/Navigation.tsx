@@ -8,6 +8,8 @@ import {
   Scale, 
   MessageSquare, 
   Users,
+  Network,
+  MessageCircleQuestion,
   Lock,
   Unlock,
   AlertTriangle,
@@ -74,6 +76,8 @@ const Navigation: React.FC<NavigationProps> = ({
     fr: {
       dashboard: 'Tableau de bord',
       community: 'Réseau Résistance',
+      reseau: 'Le réseau',
+      questions: 'Poser une question',
       news: 'Veille & Signaux',
       claims: 'Cartographie Claims',
       archives: 'Historique',
@@ -88,6 +92,8 @@ const Navigation: React.FC<NavigationProps> = ({
     en: {
       dashboard: 'Dashboard',
       community: 'Resistance Network',
+      reseau: 'The network',
+      questions: 'Ask a question',
       news: 'Monitoring & Signals',
       claims: 'Claims Mapping',
       archives: 'History',
@@ -102,6 +108,8 @@ const Navigation: React.FC<NavigationProps> = ({
     ani: {
       dashboard: 'Dashboard',
       community: 'Resistance Network',
+      reseau: 'The network',
+      questions: 'Ask a question',
       news: 'Monitoring & Signals',
       claims: 'Claims Mapping',
       archives: 'History',
@@ -120,12 +128,14 @@ const Navigation: React.FC<NavigationProps> = ({
   const navItems = [
     { id: ViewState.DASHBOARD, label: t.dashboard, icon: LayoutDashboard },
     { id: ViewState.COMMUNITY, label: t.community, icon: Users },
+    { id: ViewState.RESEAU, label: t.reseau, icon: Network },
     { id: ViewState.NEWS, label: t.news, icon: Newspaper },
     { id: ViewState.CLAIMS, label: t.claims, icon: Map },
     { id: ViewState.ARCHIVES, label: t.archives, icon: Archive },
     { id: ViewState.LAWS, label: t.laws, icon: Scale },
     { id: ViewState.LIBRARY, label: t.library, icon: BookOpen },
     { id: ViewState.CHAT, label: t.chat, icon: MessageSquare },
+    { id: ViewState.QUESTIONS, label: t.questions, icon: MessageCircleQuestion },
     { id: ViewState.ADMIN, label: t.admin, icon: DollarSignIcon }, // Changed Icon and Label
   ];
 
@@ -151,7 +161,7 @@ const Navigation: React.FC<NavigationProps> = ({
              <button onClick={() => setShowAdminLogin(false)} className="absolute top-3 right-3 text-slate-500 hover:text-white"><X size={16}/></button>
              <h3 className="text-white font-bold mb-3 flex items-center gap-2"><Lock size={16}/> {t.adminMode}</h3>
              <p className="text-slate-400 text-sm leading-relaxed mb-4">
-               Le mode administration est reserve aux comptes dont le role est defini dans le registre. Connectez-vous avec le compte autorise, puis reessayez.
+               Le mode administration est réservé aux comptes dont le rôle est défini dans le registre. Connectez-vous avec le compte autorisé, puis réessayez.
              </p>
              <button onClick={() => setShowAdminLogin(false)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-bold">
                Compris

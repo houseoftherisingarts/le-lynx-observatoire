@@ -3,27 +3,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, ThumbsUp, Shield, Upload, Calendar, Send, User, ChevronRight, X, MapPin, FileText, Image, ExternalLink, Download, Hand, Users, Megaphone, BookOpen, Share2, MousePointerClick, Clock, Trash2, CheckCircle, CalendarPlus, Facebook, Twitter, Link, Star, Save, Loader, Phone, Mail, Zap, Lock, Instagram, Copy, Check, RefreshCw, Smartphone, List } from 'lucide-react';
 import { AuthState, User as UserType, Language } from '../types';
+import Mur from './social/Mur';
 import {
-    FeedPost,
-    FeedComment,
     MobAction,
     ChatMessage as LiveChatMessage,
-    subscribeToPosts,
-    subscribeToComments,
     subscribeToChat,
     subscribeToActions,
-    subscribeToMyReactions,
-    createPost,
-    deletePost,
-    addComment,
-    toggleReaction,
     sendChatMessage,
     createAction,
     joinAction,
     deleteAction,
-    timeAgo,
     clockTime,
-    avatarTone,
 } from '../services/socialService';
 
 // Add type for html2canvas
@@ -43,7 +33,6 @@ interface CommunityProps {
     isAdmin?: boolean;
 }
 
-type Post = FeedPost;
 type Action = MobAction;
 
 const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, activeTab, setActiveTab, language, isAdmin = false }) => {
@@ -72,8 +61,6 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
     const [emailSuccess, setEmailSuccess] = useState(false);
 
     // Post Creation State
-    const [newPostText, setNewPostText] = useState('');
-    const [isPosting, setIsPosting] = useState(false);
 
     // Action Wizard State
     const [isActionWizardOpen, setIsActionWizardOpen] = useState(false);
@@ -194,33 +181,22 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
     const t = translations[language];
 
     // Etat vivant : tout arrive de Firestore en direct.
-    const [posts, setPosts] = useState<Post[]>([]);
     const [actions, setActions] = useState<Action[]>([]);
     const [chatMessages, setChatMessages] = useState<LiveChatMessage[]>([]);
-    const [mesReactions, setMesReactions] = useState<Set<string>>(new Set());
-    const [chargementMur, setChargementMur] = useState(true);
     const [chargementActions, setChargementActions] = useState(true);
     const [erreurFlux, setErreurFlux] = useState(false);
 
-    // Commentaires du billet ouvert
-    const [filOuvert, setFilOuvert] = useState<string | null>(null);
-    const [commentaires, setCommentaires] = useState<FeedComment[]>([]);
-    const [nouveauCommentaire, setNouveauCommentaire] = useState('');
 
     const moi = authState.user
         ? { id: authState.user.id, name: authState.user.name, photo: authState.user.avatar }
         : null;
 
     useEffect(() => {
-        const arreterMur = subscribeToPosts(
-            (items) => { setPosts(items); setChargementMur(false); setErreurFlux(false); },
-            () => { setChargementMur(false); setErreurFlux(true); }
-        );
         const arreterActions = subscribeToActions(
-            (items) => { setActions(items); setChargementActions(false); },
-            () => setChargementActions(false)
+            (items) => { setActions(items); setChargementActions(false); setErreurFlux(false); },
+            () => { setChargementActions(false); setErreurFlux(true); }
         );
-        return () => { arreterMur(); arreterActions(); };
+        return arreterActions;
     }, []);
 
     useEffect(() => {
@@ -231,18 +207,6 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
         const arreter = subscribeToChat(setChatMessages, () => setChatMessages([]));
         return arreter;
     }, [authState.isAuthenticated]);
-
-    useEffect(() => {
-        if (!moi) { setMesReactions(new Set()); return; }
-        const arreter = subscribeToMyReactions(moi.id, setMesReactions);
-        return arreter;
-    }, [moi?.id]);
-
-    useEffect(() => {
-        if (!filOuvert) { setCommentaires([]); return; }
-        const arreter = subscribeToComments(filOuvert, setCommentaires);
-        return arreter;
-    }, [filOuvert]);
 
     // --- COUNTDOWN HELPER ---
     const calculateTimeLeft = (targetDate: number) => {
@@ -402,48 +366,9 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
         setTimeout(() => setEmailSuccess(false), 4000);
     };
 
-    const handleCreatePost = async () => {
-        if (!newPostText.trim()) return;
-        if (!moi) { setIsAuthModalOpen(true); return; }
-        setIsPosting(true);
-        try {
-            await createPost(moi, newPostText);
-            setNewPostText('');
-        } catch (e) {
-            console.error('Publication refusee', e);
-        } finally {
-            setIsPosting(false);
-        }
-    };
 
-    const handleReaction = async (postId: string) => {
-        if (!moi) { setIsAuthModalOpen(true); return; }
-        try {
-            await toggleReaction(postId, moi.id);
-        } catch (e) {
-            console.error('Reaction refusee', e);
-        }
-    };
 
-    const handleComment = async (postId: string) => {
-        if (!moi) { setIsAuthModalOpen(true); return; }
-        const texte = nouveauCommentaire.trim();
-        if (!texte) return;
-        setNouveauCommentaire('');
-        try {
-            await addComment(postId, moi, texte);
-        } catch (e) {
-            console.error('Commentaire refuse', e);
-        }
-    };
 
-    const handleDeletePost = async (postId: string) => {
-        try {
-            await deletePost(postId);
-        } catch (e) {
-            console.error('Suppression refusee', e);
-        }
-    };
 
     const handleSendMessage = async () => {
         if (!chatInput.trim()) return;
@@ -781,11 +706,11 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                             <Trash2 size={18} className="text-red-500" /> Supprimer l'action ?
                         </h3>
                         <p className="text-sm text-slate-400 mb-4 leading-relaxed">
-                            L'action disparait de la liste pour tout le monde, et les inscriptions qui l'accompagnent partent avec elle. Le geste ne se reprend pas.
+                            L'action disparaît de la liste pour tout le monde, et les inscriptions qui l'accompagnent partent avec elle. Le geste ne se reprend pas.
                         </p>
                         {deleteError && (
                             <p className="text-xs text-red-500 mb-4">
-                                La suppression a ete refusee. Seuls l'auteur de l'action et l'administration peuvent la retirer.
+                                La suppression a été refusée. Seuls l'auteur de l'action et l'administration peuvent la retirer.
                             </p>
                         )}
                         <div className="flex gap-2">
@@ -977,151 +902,13 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                     )}
 
                     {activeTab === 'roundtable' && (
-                        <div className="space-y-6 animate-fade-in">
-                            {/* Post Input */}
-                            <div className="glass-card p-4 rounded-2xl border border-white/5 bg-[#0a0a0a]/40">
-                                <div className="flex gap-4">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${authState.isAuthenticated ? 'bg-emerald-600' : 'bg-slate-700'}`}>
-                                        <User size={18} className="text-white" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <textarea
-                                            value={newPostText}
-                                            onChange={(e) => setNewPostText(e.target.value)}
-                                            placeholder={authState.isAuthenticated ? "Partagez une info stratégique..." : "Connectez-vous pour participer"}
-                                            disabled={!authState.isAuthenticated}
-                                            className="w-full bg-transparent text-white placeholder:text-slate-500 text-sm focus:outline-none resize-none h-20"
-                                        />
-                                        <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-3">
-                                            <div className="flex gap-2">
-                                                <button className="p-2 hover:bg-white/5 rounded-full text-slate-400 transition-colors" disabled={!authState.isAuthenticated}><Image size={18}/></button>
-                                                <button className="p-2 hover:bg-white/5 rounded-full text-slate-400 transition-colors" disabled={!authState.isAuthenticated}><MapPin size={18}/></button>
-                                            </div>
-                                            <button 
-                                                onClick={handleCreatePost}
-                                                disabled={!authState.isAuthenticated || !newPostText.trim() || isPosting}
-                                                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all"
-                                            >
-                                                {isPosting ? '...' : 'Publier'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Le fil de la table ronde */}
-                            {chargementMur && (
-                                <div className="space-y-4">
-                                    {[1, 2].map(i => (
-                                        <div key={i} className="glass-card p-6 rounded-2xl animate-pulse">
-                                            <div className="h-4 bg-white/10 rounded w-1/3 mb-3" />
-                                            <div className="h-4 bg-white/5 rounded w-full mb-2" />
-                                            <div className="h-4 bg-white/5 rounded w-4/5" />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {!chargementMur && erreurFlux && (
-                                <div className="glass-card p-8 rounded-2xl border border-red-900/30 text-center">
-                                    <p className="text-white font-bold mb-2">La table ronde est momentanement injoignable</p>
-                                    <p className="text-slate-400 text-sm font-light">Le fil se rebranche des que la connexion revient.</p>
-                                </div>
-                            )}
-
-                            {!chargementMur && !erreurFlux && posts.length === 0 && (
-                                <div className="glass-card p-10 rounded-2xl border border-white/5 text-center">
-                                    <MessageCircle className="mx-auto text-slate-600 mb-4" size={26} />
-                                    <p className="text-white font-bold mb-2">La table ronde attend sa premiere parole</p>
-                                    <p className="text-slate-400 text-sm font-light max-w-md mx-auto leading-relaxed">
-                                        Ce que vous ecrivez ici reste visible pour tout le monde et se garde d'une visite a l'autre.
-                                    </p>
-                                </div>
-                            )}
-
-                            {posts.map(post => {
-                                const aReagi = mesReactions.has(post.id);
-                                const filEstOuvert = filOuvert === post.id;
-                                const peutSupprimer = isAdmin || (moi && post.authorId === moi.id);
-                                return (
-                                <div key={post.id} className="glass-card p-6 rounded-2xl border border-white/5 bg-[#0a0a0a]/40 hover:bg-[#0a0a0a]/60 transition-all">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="flex items-center gap-3">
-                                            {post.authorPhoto ? (
-                                                <img src={post.authorPhoto} alt="" className="w-8 h-8 rounded-full object-cover" />
-                                            ) : (
-                                                <div className={`w-8 h-8 rounded-full ${avatarTone(post.authorId)} flex items-center justify-center text-xs font-bold text-white`}>
-                                                    {(post.authorName || '?').charAt(0)}
-                                                </div>
-                                            )}
-                                            <div>
-                                                <p className="text-sm font-bold text-white">{post.authorName}</p>
-                                                <p className="text-[10px] text-slate-500">{timeAgo(post.createdAt, language)}</p>
-                                            </div>
-                                        </div>
-                                        {peutSupprimer && (
-                                            <button
-                                                onClick={() => handleDeletePost(post.id)}
-                                                className="text-slate-600 hover:text-red-500 transition-colors"
-                                                title="Retirer cette publication"
-                                            >
-                                                <Trash2 size={15}/>
-                                            </button>
-                                        )}
-                                    </div>
-                                    <p className="text-slate-300 text-sm leading-relaxed mb-4 whitespace-pre-wrap">{post.text}</p>
-                                    <div className="flex items-center gap-4 border-t border-white/5 pt-3">
-                                        <button
-                                            onClick={() => handleReaction(post.id)}
-                                            className={`flex items-center gap-2 text-xs transition-colors ${aReagi ? 'text-emerald-400' : 'text-slate-500 hover:text-emerald-400'}`}
-                                        >
-                                            <ThumbsUp size={14} /> {post.reactionCount || 0}
-                                        </button>
-                                        <button
-                                            onClick={() => setFilOuvert(filEstOuvert ? null : post.id)}
-                                            className={`flex items-center gap-2 text-xs transition-colors ${filEstOuvert ? 'text-white' : 'text-slate-500 hover:text-white'}`}
-                                        >
-                                            <MessageCircle size={14} /> {post.commentCount || 0}
-                                        </button>
-                                    </div>
-
-                                    {filEstOuvert && (
-                                        <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
-                                            {commentaires.map(c => (
-                                                <div key={c.id} className="flex gap-3">
-                                                    <div className={`w-6 h-6 shrink-0 rounded-full ${avatarTone(c.authorId)} flex items-center justify-center text-[10px] font-bold text-white`}>
-                                                        {(c.authorName || '?').charAt(0)}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className="text-[11px] font-bold text-slate-300">
-                                                            {c.authorName}
-                                                            <span className="ml-2 font-normal text-slate-600">{timeAgo(c.createdAt, language)}</span>
-                                                        </p>
-                                                        <p className="text-xs text-slate-400 leading-relaxed">{c.text}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            <div className="flex gap-2 pt-1">
-                                                <input
-                                                    value={nouveauCommentaire}
-                                                    onChange={e => setNouveauCommentaire(e.target.value)}
-                                                    onKeyDown={e => e.key === 'Enter' && handleComment(post.id)}
-                                                    placeholder="Repondre"
-                                                    className="flex-1 bg-black/40 border border-white/10 rounded-full px-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50"
-                                                />
-                                                <button
-                                                    onClick={() => handleComment(post.id)}
-                                                    disabled={!nouveauCommentaire.trim()}
-                                                    className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-4 rounded-full text-xs font-bold transition-colors"
-                                                >
-                                                    <Send size={13} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                );
-                            })}
+                        <div className="animate-fade-in">
+                            <Mur
+                                language={language}
+                                fil="place-publique"
+                                isAdmin={isAdmin}
+                                onSignIn={onSignIn}
+                            />
                         </div>
                     )}
                     
@@ -1280,7 +1067,7 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#0a0a0a]/30">
                             {!authState.isAuthenticated && (
                                 <p className="text-slate-500 text-xs text-center py-10 leading-relaxed px-4">
-                                    Le salon est reserve aux personnes connectees. Connectez-vous pour lire les echanges et y prendre part.
+                                    Le salon est réservé aux personnes connectées. Connectez-vous pour lire les échanges et y prendre part.
                                 </p>
                             )}
                             {authState.isAuthenticated && chatMessages.length === 0 && (

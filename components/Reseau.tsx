@@ -44,10 +44,10 @@ interface ReseauProps {
 
 const TEXTES = {
   fr: {
-    surtitre: 'Le reseau',
+    surtitre: 'Le réseau',
     titre: 'Les gens de la lutte',
     intro:
-      "L'Observatoire n'est pas seulement un tableau de bord. Les personnes qui tiennent la ligne s'y retrouvent, s'y ecrivent, s'organisent en cellules et se donnent rendez-vous.",
+      "L'Observatoire n'est pas seulement un tableau de bord. Les personnes qui tiennent la ligne s'y retrouvent, s'y écrivent, s'organisent en cellules et se donnent rendez-vous.",
     onglets: {
       annuaire: 'Annuaire',
       messagerie: 'Messages',
@@ -55,11 +55,11 @@ const TEXTES = {
       evenements: 'Rendez-vous',
       galerie: 'Galerie',
       questions: 'Questions',
-      moderation: 'Moderation',
+      moderation: 'Modération',
     },
-    connexionTitre: 'Le reseau demande un compte',
+    connexionTitre: 'Le réseau demande un compte',
     connexionTexte:
-      "Le mur, les messages et les cellules appartiennent aux personnes qui portent la lutte. La connexion se fait avec un compte Google, et votre fiche se cree toute seule au premier passage.",
+      "Le mur, les messages et les cellules appartiennent aux personnes qui portent la lutte. La connexion se fait avec un compte Google, et votre fiche se crée toute seule au premier passage.",
     connexion: 'Se connecter',
     connexionEnCours: 'Connexion en cours',
     maFiche: 'Ma fiche',
@@ -122,7 +122,7 @@ const Reseau: React.FC<ReseauProps> = ({
   const [connexionEnCours, setConnexionEnCours] = useState(false);
   const [avis, setAvis] = useState<string | null>(null);
 
-  // La fiche publique se cree au premier passage, sans que personne la demande.
+  // La fiche publique se crée au premier passage, sans que personne la demande.
   useEffect(() => {
     if (!profile) return;
     assurerFicheMembre(profile).catch((e) => console.error('Fiche membre', e));

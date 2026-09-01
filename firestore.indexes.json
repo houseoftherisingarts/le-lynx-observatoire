@@ -17,11 +17,83 @@
       ]
     },
     {
+      "collectionGroup": "mur",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fil", "order": "ASCENDING" },
+        { "fieldPath": "chaleur", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mur",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fil", "order": "ASCENDING" },
+        { "fieldPath": "creeLe", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "dms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "participantUids", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "majLe", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "amities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "paire", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "statut", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "photos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "creeLe", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "photos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "creeLe", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "signalements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "creeLe", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cellules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "membreUids", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "creeLe", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "questions",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "votes",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "majLe", "order": "DESCENDING" }
       ]
     }
   ],

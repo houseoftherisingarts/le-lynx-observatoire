@@ -11,6 +11,8 @@ export enum ViewState {
   COMMUNITY = 'COMMUNITY',
   ADMIN = 'ADMIN',
   SUBMIT_PROJECT = 'SUBMIT_PROJECT',
+  RESEAU = 'RESEAU',
+  QUESTIONS = 'QUESTIONS',
 }
 
 export type Language = 'fr' | 'en' | 'ani';

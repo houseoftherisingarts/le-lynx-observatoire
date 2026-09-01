@@ -64,20 +64,20 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ language }) => {
     const fr = {
       title: 'Veille et signaux',
       subtitle:
-        "Chaque matin, le systeme relit les registres gouvernementaux, les conseils municipaux, les communiques de la miniere et la presse regionale, puis depose ici ce qui a bouge.",
+        "Chaque matin, le système relit les registres gouvernementaux, les conseils municipaux, les communiqués de la minière et la presse régionale, puis dépose ici ce qui a bougé.",
       all: 'Tout',
       gov: 'Sources gouvernementales',
-      lastRun: 'Derniere veille',
-      never: "La premiere veille n'a pas encore tourne.",
+      lastRun: 'Dernière veille',
+      never: "La première veille n'a pas encore tourné.",
       emptyTitle: 'Rien de nouveau pour le moment',
       emptyBody:
-        "La prochaine passe part demain matin a 6 h 05. Ce qui sera trouve dans les registres et dans la presse apparaitra ici sans que personne ait a l'ajouter a la main.",
-      errorTitle: 'La veille est momentanement injoignable',
-      errorBody: 'Le flux se rebranche tout seul des que la connexion revient.',
-      read: "Lire a la source",
-      count: (n: number) => `${n} element${n > 1 ? 's' : ''} suivi${n > 1 ? 's' : ''}`,
+        "La prochaine passe part demain matin à 6 h 05. Ce qui sera trouvé dans les registres et dans la presse apparaîtra ici sans que personne ait à l'ajouter à la main.",
+      errorTitle: 'La veille est momentanément injoignable',
+      errorBody: 'Le flux se rebranche tout seul dès que la connexion revient.',
+      read: "Lire à la source",
+      count: (n: number) => `${n} élément${n > 1 ? 's' : ''} suivi${n > 1 ? 's' : ''}`,
       tooltip:
-        'GESTIM, Gazette officielle, ministere des Ressources naturelles, BAPE, Assemblee nationale, MRC de Papineau et conseils municipaux, Lomiko Metals, Le Droit, Radio-Canada, Info Petite-Nation.',
+        'GESTIM, Gazette officielle, ministère des Ressources naturelles, BAPE, Assemblée nationale, MRC de Papineau et conseils municipaux, Lomiko Metals, Le Droit, Radio-Canada, Info Petite-Nation.',
       high: 'Prioritaire',
     };
     const en = {

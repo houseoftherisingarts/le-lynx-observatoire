@@ -10,6 +10,9 @@ import ArchiveTimeline from './components/ArchiveTimeline';
 import Community from './components/Community';
 import AdminPanel from './components/AdminPanel';
 import SubmitProject from './components/SubmitProject';
+import Reseau from './components/Reseau';
+import PoserQuestion from './components/social/PoserQuestion';
+import Cloche from './components/social/Cloche';
 import { Map as MapIcon, Scale, Menu, ExternalLink, FileText, Lock, ShieldCheck, BookOpen, Download, Globe, X, HelpCircle, Monitor, Layers, RefreshCw, ZoomIn, Eye } from 'lucide-react';
 
 // Add global types for external libraries
@@ -152,6 +155,7 @@ const AppContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [language, setLanguage] = useState<Language>('fr');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [ecrireA, setEcrireA] = useState<string | null>(null);
 
   // Admin: password-based toggle OR Firestore role === 'admin'
   const [isAdmin, setIsAdmin] = useState(false);
@@ -190,6 +194,24 @@ const AppContent: React.FC = () => {
   const handleNavigateToCommunityAction = () => {
       setCommunityTab('actions');
       setView(ViewState.COMMUNITY);
+  };
+
+  const allerDepuisCloche = (item: { type: string; cible?: string }) => {
+      if (item.type === 'message') {
+          setEcrireA(item.cible || null);
+          setView(ViewState.RESEAU);
+          return;
+      }
+      if (item.type === 'alliance') {
+          setEcrireA(null);
+          setView(ViewState.RESEAU);
+          return;
+      }
+      if (item.type === 'veille') {
+          setView(ViewState.NEWS);
+          return;
+      }
+      setView(ViewState.RESEAU);
   };
 
   const handleProjectSubmit = (submission: ProjectSubmission) => {
@@ -232,6 +254,21 @@ const AppContent: React.FC = () => {
         return <AdminPanel submissions={projectSubmissions} language={language} />;
       case ViewState.SUBMIT_PROJECT:
         return <SubmitProject onSubmit={handleProjectSubmit} language={language} />;
+      case ViewState.RESEAU:
+        return (
+          <Reseau
+            language={language}
+            isAdmin={isAdmin}
+            onSignIn={signInWithGoogle}
+            ouvrirAvec={ecrireA}
+          />
+        );
+      case ViewState.QUESTIONS:
+        return (
+          <div className="py-6">
+            <PoserQuestion language={language} origin="direct" />
+          </div>
+        );
       case ViewState.CLAIMS:
         return (
             <div className="flex flex-col items-center justify-start min-h-[60vh] text-center space-y-8 animate-fade-in p-4 pb-20">
@@ -611,9 +648,12 @@ const AppContent: React.FC = () => {
              </div>
              <h1 className="text-xl font-bold text-white font-serif tracking-tight">Le Lynx</h1>
          </div>
-         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-white hover:text-emerald-400 transition-colors">
-            <Menu />
-         </button>
+         <div className="flex items-center gap-2">
+            {profile && <Cloche language={language} onAller={allerDepuisCloche} />}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-white hover:text-emerald-400 transition-colors">
+               <Menu />
+            </button>
+         </div>
       </div>
 
       {/* Mobile Nav Overlay */}
@@ -651,6 +691,11 @@ const AppContent: React.FC = () => {
       
       {/* Main Content */}
       <main className="flex-1 p-4 md:p-10 overflow-y-auto h-screen relative z-10 scroll-smooth custom-scrollbar w-full">
+        {profile && (
+          <div className="hidden md:flex justify-end mb-2 sticky top-0 z-30">
+            <Cloche language={language} onAller={allerDepuisCloche} />
+          </div>
+        )}
         <div className="max-w-7xl mx-auto pb-10">
           {renderContent()}
         </div>
