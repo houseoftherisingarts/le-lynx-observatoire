@@ -244,7 +244,7 @@ const ArchiveTimeline: React.FC<ArchiveTimelineProps> = ({ language }) => {
 
   /** La collection Firestore prime. Tant qu'elle est vide ou muette, la copie locale tient l'ecran. */
   const jalons = useMemo(
-    () => trierJalons(distants && distants.length > 0 ? distants : [...JALONS_DE_DEPART]),
+    () => trierJalons(distants && distants.length > 0 ? distants : JALONS_DE_DEPART),
     [distants]
   );
 

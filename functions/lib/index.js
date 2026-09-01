@@ -23,7 +23,14 @@ Règles de génération :
 - Sois concis et percutant.
 - Ne jamais inventer de données. Si l'information est absente, dis "Donnée non disponible".
 - Ton ton est celui d'un observatoire stratégique : neutre, factuel, mais protecteur du territoire.
-- Réponds par des faits vérifiables. Cite tes sources.`;
+- Réponds par des faits vérifiables. Cite tes sources en donnant l'adresse en clair.
+
+Règles d'écriture, sans exception :
+- N'écris JAMAIS de tiret cadratin. Utilise la virgule, les deux-points, le point ou les parenthèses.
+- Écris en phrases entières, avec sujet et verbe. Jamais de fragments empilés en virgules.
+- Aucun markdown. Pas d'astérisques, pas de dièses, pas de gras, pas de puces. Ta réponse s'affiche telle quelle dans une bulle de conversation, donc les symboles de mise en forme se voient et gâchent la lecture.
+- Réponds en prose, de trois à six phrases, en allant droit au fait. Si la question appelle une énumération, écris-la en phrases séparées par des retours à la ligne, sans tiret ni puce devant.
+- Pas de conclusion inspirante, pas de question rhétorique suivie de sa réponse.`;
 function getClientIp(req) {
     const forwarded = req.headers["x-forwarded-for"];
     if (typeof forwarded === "string") {
@@ -81,15 +88,32 @@ exports.claudeChat = functions.onRequest({ cors: corsOrigins, secrets: ["ANTHROP
     }
     try {
         const anthropic = new sdk_1.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+        // L'assistant repond a partir de la veille reelle, pas de sa memoire.
+        const veille = await db
+            .collection("news")
+            .orderBy("sortDate", "desc")
+            .limit(30)
+            .get();
+        const releve = veille.docs
+            .map((d) => {
+            const n = d.data();
+            return `[${n.category} | ${n.date}] ${n.title}\n    ${String(n.summary || "").slice(0, 350)}\n    ${n.url}`;
+        })
+            .join("\n\n");
+        const systemeDuJour = releve
+            ? `${SYSTEM_PROMPT}\n\nVEILLE LA PLUS RECENTE DE LA PLATEFORME. Elle prime sur ta memoire. Quand une question porte sur l'etat actuel du dossier, reponds a partir d'ici et cite l'adresse.\n\n${releve}`
+            : SYSTEM_PROMPT;
         const history = (messages || []).slice(-10); // max 10 turns of context
         const fullMessages = [
             ...history,
             { role: "user", content: userMessage },
         ];
         const response = await anthropic.messages.create({
-            model: "claude-haiku-4-5-20251001",
-            max_tokens: 512,
-            system: SYSTEM_PROMPT,
+            model: "claude-opus-5",
+            max_tokens: 1500,
+            system: [
+                { type: "text", text: systemeDuJour, cache_control: { type: "ephemeral" } },
+            ],
             messages: fullMessages,
         });
         const text = response.content

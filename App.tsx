@@ -11,6 +11,8 @@ import Community from './components/Community';
 import AdminPanel from './components/AdminPanel';
 import SubmitProject from './components/SubmitProject';
 import Reseau from './components/Reseau';
+import CadreJuridique from './components/CadreJuridique';
+import Bibliotheque from './components/Bibliotheque';
 import PoserQuestion from './components/social/PoserQuestion';
 import Cloche from './components/social/Cloche';
 import { Map as MapIcon, Scale, Menu, ExternalLink, FileText, Lock, ShieldCheck, BookOpen, Download, Globe, X, HelpCircle, Monitor, Layers, RefreshCw, ZoomIn, Eye } from 'lucide-react';
@@ -413,149 +415,9 @@ const AppContent: React.FC = () => {
             </div>
         );
       case ViewState.LAWS:
-        return (
-            <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20">
-                {/* Header */}
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="p-4 bg-indigo-900/30 rounded-2xl border border-indigo-500/20 text-indigo-400">
-                        <Scale size={32} />
-                    </div>
-                    <div>
-                        <h2 className="text-3xl font-bold text-white">
-                            {language === 'fr' ? 'Cadre Juridique' : language === 'en' ? 'Legal Framework' : 'Dibaakonigewin'}
-                        </h2>
-                        <p className="text-slate-400 font-light">
-                            {language === 'fr' ? 'Lois, règlements et documents officiels.' : 
-                             'Laws, regulations and official documents.'}
-                        </p>
-                    </div>
-                </div>
-
-                {/* SECTION 1: LOIS */}
-                <div className="space-y-6">
-                    <h3 className="text-xl font-serif text-white pl-3 border-l-2 border-indigo-500">
-                        {language === 'fr' ? 'Lois et Règlements (Québec)' : 'Laws and Regulations'}
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <a href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/M-13.1" target="_blank" rel="noreferrer" className="glass-card p-6 rounded-2xl hover:bg-white/5 group transition-all border border-white/5">
-                            <div className="flex justify-between items-start mb-4">
-                                <FileText className="text-indigo-400" />
-                                <ExternalLink size={14} className="text-slate-600 group-hover:text-white" />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-200 mb-2">
-                                 {language === 'fr' ? 'Loi sur les mines' : 'Mining Act'}
-                            </h3>
-                            <p className="text-sm text-slate-400 font-mono">Chapitre M-13.1</p>
-                            <p className="text-xs text-slate-500 mt-2">
-                                {language === 'fr' ? "Le cadre légal principal favorisant l'extraction (free mining)." : "Main legal framework favoring extraction (free mining)."}
-                            </p>
-                        </a>
-
-                        <a href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/Q-2" target="_blank" rel="noreferrer" className="glass-card p-6 rounded-2xl hover:bg-white/5 group transition-all border border-white/5">
-                            <div className="flex justify-between items-start mb-4">
-                                <ShieldCheck className="text-emerald-400" />
-                                <ExternalLink size={14} className="text-slate-600 group-hover:text-white" />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-200 mb-2">
-                                {language === 'fr' ? "Loi sur la qualité de l'environnement" : "Environment Quality Act"}
-                            </h3>
-                            <p className="text-sm text-slate-400 font-mono">Chapitre Q-2</p>
-                            <p className="text-xs text-slate-500 mt-2">
-                                 {language === 'fr' ? "La base légale pour exiger des BAPE et des certificats d'autorisation." : "Legal basis to demand BAPE hearings and authorization certificates."}
-                            </p>
-                        </a>
-
-                        <a href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/A-19.1" target="_blank" rel="noreferrer" className="glass-card p-6 rounded-2xl hover:bg-white/5 group transition-all border border-white/5">
-                             <div className="flex justify-between items-start mb-4">
-                                <MapIcon className="text-cyan-400" />
-                                <ExternalLink size={14} className="text-slate-600 group-hover:text-white" />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-200 mb-2">
-                                 {language === 'fr' ? "Aménagement et urbanisme" : "Land Use Planning and Development"}
-                            </h3>
-                            <p className="text-sm text-slate-400 font-mono">Art. 246 (TIAM)</p>
-                            <p className="text-xs text-slate-500 mt-2">
-                                 {language === 'fr' ? "Concernant les Territoires Incompatibles avec l'Activité Minière." : "Regarding Territories Incompatible with Mining Activity."}
-                            </p>
-                        </a>
-
-                         <div className="glass-card p-6 rounded-2xl bg-slate-900/80 border-dashed border-2 border-white/5 flex flex-col items-center justify-center text-center opacity-70">
-                            <Lock className="text-slate-600 mb-2" />
-                            <h3 className="text-sm font-bold text-slate-400">
-                                 {language === 'fr' ? "Documents Stratégiques" : "Strategic Documents"}
-                            </h3>
-                            <p className="text-xs text-slate-600 mt-1">
-                                 {language === 'fr' ? "Accessibles uniquement aux membres vérifiés (Table Ronde)." : "Accessible only to verified members."}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
+        return <CadreJuridique language={language} isAdmin={isAdmin} />;
       case ViewState.LIBRARY:
-        return (
-            <div className="max-w-4xl mx-auto space-y-12 animate-fade-in pb-20">
-                {/* Header */}
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="p-4 bg-emerald-900/30 rounded-2xl border border-emerald-500/20 text-emerald-400">
-                        <BookOpen size={32} />
-                    </div>
-                    <div>
-                        <h2 className="text-3xl font-bold text-white">
-                            {language === 'fr' ? 'Bibliothèque' : language === 'en' ? 'Library' : 'Agindaasowigamig'}
-                        </h2>
-                        <p className="text-slate-400 font-light">
-                            {language === 'fr' ? 'Guides pratiques, recherches et documentation citoyenne.' : 
-                             'Practical guides, research and citizen documentation.'}
-                        </p>
-                    </div>
-                </div>
-
-                {/* SECTION 2: BIBLIOTHEQUE MOVED */}
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-4">
-                         {/* EAU SECOURS */}
-                         <a href="https://eausecours.org/sites/eausecours.org/wp-content/uploads/2023/11/Guide-citoyen-industrie-miniere_FR.pdf" target="_blank" rel="noreferrer" className="glass-card p-6 rounded-2xl hover:bg-emerald-900/10 group transition-all border border-white/5 hover:border-emerald-500/30 flex items-start gap-4">
-                            <div className="p-3 bg-white/5 rounded-xl text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                                <BookOpen size={24} />
-                            </div>
-                            <div className="flex-1">
-                                 <h3 className="text-lg font-bold text-slate-200 mb-1 group-hover:text-white flex items-center gap-2">
-                                     {language === 'fr' ? "Guide citoyen sur l'industrie minière" : "Citizen Guide to Mining Industry"}
-                                     <ExternalLink size={12} className="opacity-50" />
-                                 </h3>
-                                 <p className="text-xs font-bold uppercase tracking-wider text-emerald-500 mb-2">Eau Secours (2023)</p>
-                                 <p className="text-sm text-slate-400 font-light leading-relaxed">
-                                     {language === 'fr' ? "Un manuel complet pour comprendre les étapes d'un projet minier, du claim à l'exploitation, et les moyens de s'y opposer." : "A complete manual to understand mining project stages and opposition methods."}
-                                 </p>
-                            </div>
-                            <div className="hidden md:block">
-                                 <div className="p-2 bg-slate-900 rounded-lg text-slate-500 group-hover:text-white transition-colors">
-                                     <Download size={20} />
-                                 </div>
-                            </div>
-                         </a>
-
-                         {/* CQDE */}
-                         <a href="https://cqde.org" target="_blank" rel="noreferrer" className="glass-card p-6 rounded-2xl hover:bg-indigo-900/10 group transition-all border border-white/5 hover:border-indigo-500/30 flex items-start gap-4">
-                            <div className="p-3 bg-white/5 rounded-xl text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                                <Scale size={24} />
-                            </div>
-                            <div className="flex-1">
-                                 <h3 className="text-lg font-bold text-slate-200 mb-1 group-hover:text-white flex items-center gap-2">
-                                     {language === 'fr' ? "Centre Québécois du Droit de l'Environnement" : "QC Environmental Law Center"}
-                                     <ExternalLink size={12} className="opacity-50" />
-                                 </h3>
-                                 <p className="text-xs font-bold uppercase tracking-wider text-indigo-500 mb-2">Ressources Juridiques</p>
-                                 <p className="text-sm text-slate-400 font-light leading-relaxed">
-                                     {language === 'fr' ? "Accès à des guides sur les droits citoyens, les injonctions et la protection des milieux humides." : "Access to guides on citizen rights, injunctions and wetland protection."}
-                                 </p>
-                            </div>
-                         </a>
-                    </div>
-                </div>
-            </div>
-        );
+        return <Bibliotheque language={language} isAdmin={isAdmin} />;
       default:
         return (
           <Dashboard 
