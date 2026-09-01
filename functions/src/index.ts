@@ -191,3 +191,6 @@ export { dailyAudit, runAuditNow } from "./audit";
 
 // Comptes du Mur, tenus par le serveur
 export { murVoteEcrit, murCommentaireEcrit, ancienMurReaction } from "./mur";
+
+// Attribution du role d'administration
+export { verifierRole } from "./roles";

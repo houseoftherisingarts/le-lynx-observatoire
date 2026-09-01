@@ -8,6 +8,8 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../services/firebaseConfig';
 
+const FONCTIONS = 'https://us-central1-le-lynx-observatoire.cloudfunctions.net';
+
 export interface UserProfile {
   uid: string;
   displayName: string;
@@ -48,7 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setFirebaseUser(user);
       if (user) {
         const p = await fetchOrCreateProfile(user);
-        setProfile(p);
+        // Le serveur décide du rôle. Si la personne figure sur la liste
+        // d'administration, le mode s'allume sans qu'elle ait à le demander.
+        const role = await verifierRoleServeur(user);
+        setProfile(role && role !== p.role ? { ...p, role } : p);
       } else {
         setProfile(null);
       }
@@ -60,7 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     const result = await signInWithPopup(auth, googleProvider);
     const p = await fetchOrCreateProfile(result.user);
-    setProfile(p);
+    const role = await verifierRoleServeur(result.user);
+    setProfile(role && role !== p.role ? { ...p, role } : p);
   };
 
   const signOut = async () => {
@@ -97,4 +103,20 @@ async function fetchOrCreateProfile(user: User): Promise<UserProfile> {
 
   await setDoc(ref, newProfile);
   return newProfile;
+}
+
+/** Demande au serveur quel rôle porte cette personne. */
+async function verifierRoleServeur(user: User): Promise<'admin' | 'member' | null> {
+  try {
+    const jeton = await user.getIdToken();
+    const res = await fetch(`${FONCTIONS}/verifierRole`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${jeton}` },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { role?: 'admin' | 'member' };
+    return data.role ?? null;
+  } catch {
+    return null;
+  }
 }

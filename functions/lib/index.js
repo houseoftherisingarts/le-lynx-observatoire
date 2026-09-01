@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ancienMurReaction = exports.murCommentaireEcrit = exports.murVoteEcrit = exports.runAuditNow = exports.dailyAudit = exports.claudeSummary = exports.claudeChat = void 0;
+exports.verifierRole = exports.ancienMurReaction = exports.murCommentaireEcrit = exports.murVoteEcrit = exports.runAuditNow = exports.dailyAudit = exports.claudeSummary = exports.claudeChat = void 0;
 const functions = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const sdk_1 = require("@anthropic-ai/sdk");
@@ -163,4 +163,7 @@ var mur_1 = require("./mur");
 Object.defineProperty(exports, "murVoteEcrit", { enumerable: true, get: function () { return mur_1.murVoteEcrit; } });
 Object.defineProperty(exports, "murCommentaireEcrit", { enumerable: true, get: function () { return mur_1.murCommentaireEcrit; } });
 Object.defineProperty(exports, "ancienMurReaction", { enumerable: true, get: function () { return mur_1.ancienMurReaction; } });
+// Attribution du role d'administration
+var roles_1 = require("./roles");
+Object.defineProperty(exports, "verifierRole", { enumerable: true, get: function () { return roles_1.verifierRole; } });
 //# sourceMappingURL=index.js.map
