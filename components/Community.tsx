@@ -194,46 +194,56 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
 
     const t = translations[language];
 
-    // Mock Data State - In memory persistence
-    const [posts, setPosts] = useState<Post[]>([
-         {
-            id: 99,
-            user: "Sarah L.",
-            text: "Nous avons besoin de plus de bénévoles pour la distribution de pancartes ce samedi !",
-            time: "Il y a 2h",
-            likes: 12,
-            comments: 3,
-            avatarColor: "bg-purple-600"
+    // Etat vivant : tout arrive de Firestore en direct.
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [actions, setActions] = useState<Action[]>([]);
+    const [chatMessages, setChatMessages] = useState<LiveChatMessage[]>([]);
+    const [mesReactions, setMesReactions] = useState<Set<string>>(new Set());
+    const [chargementMur, setChargementMur] = useState(true);
+    const [chargementActions, setChargementActions] = useState(true);
+    const [erreurFlux, setErreurFlux] = useState(false);
+
+    // Commentaires du billet ouvert
+    const [filOuvert, setFilOuvert] = useState<string | null>(null);
+    const [commentaires, setCommentaires] = useState<FeedComment[]>([]);
+    const [nouveauCommentaire, setNouveauCommentaire] = useState('');
+
+    const moi = authState.user
+        ? { id: authState.user.id, name: authState.user.name, photo: authState.user.avatar }
+        : null;
+
+    useEffect(() => {
+        const arreterMur = subscribeToPosts(
+            (items) => { setPosts(items); setChargementMur(false); setErreurFlux(false); },
+            () => { setChargementMur(false); setErreurFlux(true); }
+        );
+        const arreterActions = subscribeToActions(
+            (items) => { setActions(items); setChargementActions(false); },
+            () => setChargementActions(false)
+        );
+        return () => { arreterMur(); arreterActions(); };
+    }, []);
+
+    useEffect(() => {
+        if (!authState.isAuthenticated) {
+            setChatMessages([]);
+            return;
         }
-    ]); 
-    const [actions, setActions] = useState<Action[]>([
-        {
-            id: 1,
-            type: 'Politique',
-            title: 'Séance du Conseil des Maires (MRC)',
-            dateDisplay: 'Mercredi 19 Novembre, 18h30',
-            timestamp: new Date('2025-11-19T18:30:00').getTime(), // Future date relative to narrative
-            location: '266, rue Viger, Papineauville',
-            participants: 124,
-            description: "Action Cruciale : Présence massive demandée à la séance publique de la MRC Papineau. Nous devons rappeler aux maires leur devoir de protéger le territoire et exiger le maintien de la position 'NON'. Soyez polis mais fermes.",
-            joinedUserIds: []
-        },
-        {
-            id: 2,
-            type: 'Visibilité',
-            title: 'Opération Pancartes "NON"',
-            dateDisplay: 'Samedi 22 Novembre, 10h00',
-            timestamp: new Date('2025-11-22T10:00:00').getTime(),
-            location: 'Carrefour Chénéville & Routes Principales',
-            participants: 56,
-            description: "Distribution et installation de pancartes sur les terrains privés (avec accord des propriétaires). L'objectif est de rendre l'opposition visible partout sur la 315, la 321 et la 323. Matériel fourni par l'Alliance.",
-            joinedUserIds: []
-        }
-    ]);
-    const [chatMessages, setChatMessages] = useState<{user: string, text: string, time: string}[]>([
-        { user: "Jean-Marc", text: "Est-ce que quelqu'un a le lien pour le zoom de ce soir ?", time: "10:30" },
-        { user: "Admin", text: "C'est dans l'onglet Ressources, fichier 'Calendrier'.", time: "10:35" }
-    ]);
+        const arreter = subscribeToChat(setChatMessages, () => setChatMessages([]));
+        return arreter;
+    }, [authState.isAuthenticated]);
+
+    useEffect(() => {
+        if (!moi) { setMesReactions(new Set()); return; }
+        const arreter = subscribeToMyReactions(moi.id, setMesReactions);
+        return arreter;
+    }, [moi?.id]);
+
+    useEffect(() => {
+        if (!filOuvert) { setCommentaires([]); return; }
+        const arreter = subscribeToComments(filOuvert, setCommentaires);
+        return arreter;
+    }, [filOuvert]);
 
     // --- COUNTDOWN HELPER ---
     const calculateTimeLeft = (targetDate: number) => {
@@ -355,26 +365,22 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
     };
 
 
-    const handleJoinAction = (actionId: number) => {
-        if (!authState.isAuthenticated) {
+    const handleJoinAction = async (actionId: string) => {
+        if (!moi) {
             setIsAuthModalOpen(true);
             return;
         }
-
-        const updatedActions = actions.map(act => {
-            if (act.id === actionId) {
-                if (act.joinedUserIds.includes(authState.user!.id)) {
-                    return act; // Already joined
-                }
-                return { ...act, participants: act.participants + 1, joinedUserIds: [...act.joinedUserIds, authState.user!.id] };
+        const action = actions.find(a => a.id === actionId);
+        if (!action) return;
+        if (!(action.participantIds || []).includes(moi.id)) {
+            try {
+                await joinAction(actionId, moi.id, action.participantCount || 0);
+            } catch (e) {
+                console.error('Inscription refusee', e);
+                return;
             }
-            return act;
-        });
-        setActions(updatedActions);
-        
-        // Open Calendar Modal for the joined action
-        const action = updatedActions.find(a => a.id === actionId);
-        if (action) setCalendarModalOpen(action);
+        }
+        setCalendarModalOpen(action);
     };
 
     const handleEmailPressure = () => {
@@ -397,42 +403,73 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
         setTimeout(() => setEmailSuccess(false), 4000);
     };
 
-    const handleCreatePost = () => {
+    const handleCreatePost = async () => {
         if (!newPostText.trim()) return;
+        if (!moi) { setIsAuthModalOpen(true); return; }
         setIsPosting(true);
-        setTimeout(() => {
-            const post: Post = {
-                id: Date.now(),
-                user: authState.user?.name || "Anonyme",
-                text: newPostText,
-                time: "À l'instant",
-                likes: 0,
-                comments: 0,
-                avatarColor: "bg-emerald-600"
-            };
-            setPosts([post, ...posts]);
+        try {
+            await createPost(moi, newPostText);
             setNewPostText('');
+        } catch (e) {
+            console.error('Publication refusee', e);
+        } finally {
             setIsPosting(false);
-        }, 800);
+        }
     };
 
-    const handleSendMessage = () => {
+    const handleReaction = async (postId: string) => {
+        if (!moi) { setIsAuthModalOpen(true); return; }
+        try {
+            await toggleReaction(postId, moi.id);
+        } catch (e) {
+            console.error('Reaction refusee', e);
+        }
+    };
+
+    const handleComment = async (postId: string) => {
+        if (!moi) { setIsAuthModalOpen(true); return; }
+        const texte = nouveauCommentaire.trim();
+        if (!texte) return;
+        setNouveauCommentaire('');
+        try {
+            await addComment(postId, moi, texte);
+        } catch (e) {
+            console.error('Commentaire refuse', e);
+        }
+    };
+
+    const handleDeletePost = async (postId: string) => {
+        try {
+            await deletePost(postId);
+        } catch (e) {
+            console.error('Suppression refusee', e);
+        }
+    };
+
+    const handleSendMessage = async () => {
         if (!chatInput.trim()) return;
-        setChatMessages([...chatMessages, {
-            user: authState.user?.name || "Moi",
-            text: chatInput,
-            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-        }]);
+        if (!moi) { setIsAuthModalOpen(true); return; }
+        const texte = chatInput;
         setChatInput('');
+        try {
+            await sendChatMessage(moi, texte);
+        } catch (e) {
+            console.error('Message refuse', e);
+            setChatInput(texte);
+        }
     };
 
-    const handleDeleteAction = () => {
-        if (isAdmin) {
-            setActions(actions.filter(a => a.id !== deleteModalOpen));
+    const handleDeleteAction = async () => {
+        if (!deleteModalOpen) return;
+        const action = actions.find(a => a.id === deleteModalOpen);
+        const peutSupprimer = isAdmin || (moi && action && action.authorId === moi.id);
+        if (!peutSupprimer) { setDeleteError(true); return; }
+        try {
+            await deleteAction(deleteModalOpen);
             setDeleteModalOpen(null);
-            setDeletePassword('');
             setDeleteError(false);
-        } else {
+        } catch (e) {
+            console.error('Suppression refusee', e);
             setDeleteError(true);
         }
     };

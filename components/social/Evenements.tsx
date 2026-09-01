@@ -157,11 +157,7 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
           <h2 className="mt-2 font-serif text-3xl text-white md:text-4xl">{t.titre}</h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-400">{t.intro}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setModaleOuverte(true)}
-          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-300 transition-all hover:border-emerald-500/60 hover:bg-emerald-500/20"
-        >
+        <button type="button" onClick={() => setModaleOuverte(true)} className="inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-300 transition-all hover:border-emerald-500/60 hover:bg-emerald-500/20">
           <Plus className="h-4 w-4" />
           {t.inscrire}
         </button>
@@ -204,11 +200,7 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
       )}
       {liste.passes.length > 0 && (
         <section>
-          <button
-            type="button"
-            onClick={() => setPassesOuverts((v) => !v)}
-            className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4 text-left transition-all hover:border-white/10"
-          >
+          <button type="button" onClick={() => setPassesOuverts((v) => !v)} className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4 text-left transition-all hover:border-white/10">
             <span className={`${ETIQUETTE} text-slate-500`}>{t.passes} · {liste.passes.length}</span>
             <ChevronDown className={`h-4 w-4 text-slate-500 transition-all ${passesOuverts ? 'rotate-180' : ''}`} />
           </button>
@@ -311,13 +303,7 @@ const CarteEvenement: React.FC<CarteProps> = ({
               {compteARebours(evenement.startsAt, maintenant, t)}
             </span>
             {peutSupprimer && (
-              <button
-                type="button"
-                onClick={onSupprimer}
-                title={t.supprimer}
-                aria-label={t.supprimer}
-                className="ml-auto rounded-full border border-white/5 p-2 text-slate-500 transition-all hover:border-red-500/30 hover:text-red-400"
-              >
+              <button type="button" onClick={onSupprimer} title={t.supprimer} aria-label={t.supprimer} className="ml-auto rounded-full border border-white/5 p-2 text-slate-500 transition-all hover:border-red-500/30 hover:text-red-400">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
@@ -338,11 +324,7 @@ const CarteEvenement: React.FC<CarteProps> = ({
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
                 {presents.slice(0, 5).map((r) => (
-                  <span
-                    key={r.id}
-                    title={r.nom}
-                    className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-emerald-500/15 text-[10px] font-bold text-emerald-300"
-                  >
+                  <span key={r.id} title={r.nom} className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-emerald-500/15 text-[10px] font-bold text-emerald-300">
                     {initiales(r.nom)}
                   </span>
                 ))}
@@ -357,22 +339,11 @@ const CarteEvenement: React.FC<CarteProps> = ({
               </span>
             </div>
             <div className="ml-auto flex flex-wrap items-center gap-2">
-              <a
-                href={liens.google}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition-all hover:border-white/10 hover:text-white"
-              >
+              <a href={liens.google} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition-all hover:border-white/10 hover:text-white">
                 <CalendarPlus className="h-3.5 w-3.5" />
                 {t.calendrier}
               </a>
-              <button
-                type="button"
-                onClick={telechargerIcs}
-                title={t.telecharger}
-                aria-label={t.telecharger}
-                className="rounded-full border border-white/5 p-2 text-slate-500 transition-all hover:border-white/10 hover:text-white"
-              >
+              <button type="button" onClick={telechargerIcs} title={t.telecharger} aria-label={t.telecharger} className="rounded-full border border-white/5 p-2 text-slate-500 transition-all hover:border-white/10 hover:text-white">
                 <Download className="h-3.5 w-3.5" />
               </button>
               {profile ? (
@@ -450,12 +421,7 @@ const ModaleEvenement: React.FC<{ t: Textes; locale: string; onFermer: () => voi
       >
         <div className="flex items-start justify-between gap-4">
           <h3 className="font-serif text-2xl text-white">{t.formTitre}</h3>
-          <button
-            type="button"
-            onClick={onFermer}
-            aria-label={t.annuler}
-            className="rounded-full border border-white/5 p-2 text-slate-400 transition-all hover:border-white/10 hover:text-white"
-          >
+          <button type="button" onClick={onFermer} aria-label={t.annuler} className="rounded-full border border-white/5 p-2 text-slate-400 transition-all hover:border-white/10 hover:text-white">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -465,11 +431,7 @@ const ModaleEvenement: React.FC<{ t: Textes; locale: string; onFermer: () => voi
           </Champ>
           <div className="grid gap-4 md:grid-cols-2">
             <Champ label={t.fType}>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as TypeEvenement)}
-                className={CHAMP}
-              >
+              <select value={type} onChange={(e) => setType(e.target.value as TypeEvenement)} className={CHAMP}>
                 {TYPES_EVENEMENT.map((v) => (
                   <option key={v} value={v} className="bg-[#02040a]">{t.types[v]}</option>
                 ))}
@@ -488,22 +450,12 @@ const ModaleEvenement: React.FC<{ t: Textes; locale: string; onFermer: () => voi
             </Champ>
           </div>
           <Champ label={t.fDescription}>
-            <textarea
-              value={description}
-              maxLength={4000}
-              rows={4}
-              onChange={(e) => setDescription(e.target.value)}
-              className={`${CHAMP} resize-none`}
-            />
+            <textarea value={description} maxLength={4000} rows={4} onChange={(e) => setDescription(e.target.value)} className={`${CHAMP} resize-none`}/>
           </Champ>
         </div>
         {message && <p className="mt-4 text-sm text-amber-400">{message}</p>}
         {!profile && <p className="mt-4 text-sm text-slate-400">{t.connectez}</p>}
-        <button
-          type="submit"
-          disabled={envoi || !profile}
-          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-black transition-all hover:bg-emerald-400 disabled:opacity-50"
-        >
+        <button type="submit" disabled={envoi || !profile} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-black transition-all hover:bg-emerald-400 disabled:opacity-50">
           {envoi ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           {envoi ? t.envoi : t.publier}
         </button>
