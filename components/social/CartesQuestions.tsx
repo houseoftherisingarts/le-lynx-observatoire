@@ -45,7 +45,8 @@ const T = {
     approuvee: 'Approuvée',
     attente: 'En attente',
     ans: 'ans',
-    aide: 'Flèches pour naviguer, Échap pour fermer.',
+    aide: 'Les flèches font défiler le paquet et Échap le referme.',
+    erreurStatut: 'Le changement de statut n’a pas été enregistré. Réessayez dans un moment.',
   },
   en: {
     etiquette: 'Questions from the public',
@@ -67,7 +68,8 @@ const T = {
     approuvee: 'Approved',
     attente: 'Pending',
     ans: 'years old',
-    aide: 'Arrows to navigate, Esc to close.',
+    aide: 'The arrow keys move through the deck and Esc closes it.',
+    erreurStatut: 'The status change was not saved. Please try again in a moment.',
   },
 };
 
@@ -77,6 +79,7 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState(false);
   const [index, setIndex] = useState(0);
+  const [erreurStatut, setErreurStatut] = useState(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -104,14 +107,11 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
     setIndex((i) => Math.min(i, Math.max(0, questions.length - 1)));
   }, [questions.length]);
 
+  const dernier = Math.max(0, questions.length - 1);
+
   const avancer = useCallback(
-    (pas: number) =>
-      setIndex((i) => {
-        const n = i + pas;
-        if (n < 0) return 0;
-        return n;
-      }),
-    []
+    (pas: number) => setIndex((i) => Math.min(dernier, Math.max(0, i + pas))),
+    [dernier]
   );
 
   useEffect(() => {
@@ -122,7 +122,6 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
   }, []);
 
   useEffect(() => {
-    const total = questions.length;
     const touche = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onCloseRef.current();
@@ -130,18 +129,18 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
       }
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        setIndex((i) => Math.max(0, i - 1));
+        avancer(-1);
       } else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Spacebar') {
         e.preventDefault();
-        setIndex((i) => Math.min(Math.max(0, total - 1), i + 1));
+        avancer(1);
       } else if (e.key === 'End') {
         e.preventDefault();
-        setIndex(Math.max(0, total - 1));
+        setIndex(dernier);
       }
     };
     window.addEventListener('keydown', touche);
     return () => window.removeEventListener('keydown', touche);
-  }, [questions.length]);
+  }, [avancer, dernier]);
 
   const carte = questions[index];
   const teinte =
@@ -152,8 +151,24 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
   const statut = (s: Question['status']) =>
     s === 'hidden' ? t.masquee : s === 'approved' ? t.approuvee : t.attente;
 
+  // Les regles Firestore n'acceptent ce changement que d'un compte administrateur.
+  // Sans ce catch, un refus laissait la carte inchangee sans rien dire a personne.
+  const marquer = async (id: string, nouveau: Question['status']) => {
+    setErreurStatut(false);
+    try {
+      await changerStatut(id, nouveau);
+    } catch {
+      setErreurStatut(true);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#02040a] animate-fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t.etiquette}
+      className="fixed inset-0 z-50 flex flex-col overflow-x-hidden bg-[#02040a] animate-fade-in"
+    >
       <header className="flex items-center justify-between px-5 py-4 md:px-8">
         <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
           {t.etiquette}
@@ -223,7 +238,7 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
                   <h2 className="mt-2 truncate font-serif text-4xl leading-tight text-white md:text-6xl">
                     {carte.name}
                   </h2>
-                  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-slate-400">
+                  <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-sm text-slate-400">
                     {carte.town && (
                       <span className="flex items-center gap-1.5">
                         <MapPin className="h-4 w-4 text-slate-600" />
@@ -232,9 +247,9 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
                     )}
                     {carte.age && <span>{carte.age} {t.ans}</span>}
                     {carte.email && (
-                      <span className="flex items-center gap-1.5 text-[11px] text-slate-600">
-                        <Mail className="h-3 w-3" />
-                        {carte.email}
+                      <span className="flex min-w-0 max-w-full items-center gap-1.5 text-[11px] text-slate-600">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{carte.email}</span>
                       </span>
                     )}
                   </div>
@@ -242,7 +257,7 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
               </div>
 
               <div className="flex flex-1 items-center overflow-y-auto py-6">
-                <p className="w-full font-serif text-2xl leading-snug text-slate-100 md:text-4xl md:leading-snug">
+                <p className="w-full break-words font-serif text-2xl leading-snug text-slate-100 md:text-4xl md:leading-snug">
                   {carte.question}
                 </p>
               </div>
@@ -254,7 +269,7 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
                   </span>
                   <button
                     type="button"
-                    onClick={() => changerStatut(carte.id, 'approved')}
+                    onClick={() => void marquer(carte.id, 'approved')}
                     className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition-all hover:bg-emerald-500/20"
                   >
                     <Eye className="h-3.5 w-3.5" />
@@ -262,12 +277,17 @@ const CartesQuestions: React.FC<CartesQuestionsProps> = ({ language, onClose, is
                   </button>
                   <button
                     type="button"
-                    onClick={() => changerStatut(carte.id, 'hidden')}
+                    onClick={() => void marquer(carte.id, 'hidden')}
                     className="flex items-center gap-2 rounded-full border border-white/5 bg-black/40 px-4 py-2 text-xs font-semibold text-slate-400 transition-all hover:border-white/10 hover:text-white"
                   >
                     <EyeOff className="h-3.5 w-3.5" />
                     {t.masquer}
                   </button>
+                  {erreurStatut && (
+                    <p role="alert" className="w-full text-xs leading-relaxed text-red-300">
+                      {t.erreurStatut}
+                    </p>
+                  )}
                 </div>
               )}
             </article>

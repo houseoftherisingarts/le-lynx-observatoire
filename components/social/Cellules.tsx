@@ -86,12 +86,15 @@ const T = {
 const champ =
     'w-full bg-black/40 border border-white/10 focus:border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all';
 const etiquetteClasse = 'text-[10px] font-bold uppercase tracking-widest';
-const troisLignes: React.CSSProperties = {
+const clamp = (lignes: number): React.CSSProperties => ({
     display: '-webkit-box',
-    WebkitLineClamp: 3,
+    WebkitLineClamp: lignes,
     WebkitBoxOrient: 'vertical',
     overflow: 'hidden',
-};
+    overflowWrap: 'anywhere',
+});
+const deuxLignes = clamp(2);
+const troisLignes = clamp(3);
 
 const Avatar: React.FC<{ uid: string; nom: string; taille?: string }> = ({ uid, nom, taille = 'w-8 h-8 text-[11px]' }) => (
     <div className={`${taille} ${tonAvatar(uid)} rounded-full flex items-center justify-center font-bold text-white border border-black/40`}>
