@@ -124,6 +124,7 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
     const [demandeCible, setDemandeCible] = useState<Cellule | null>(null);
     const [mot, setMot] = useState('');
     const [demandesEnvoyees, setDemandesEnvoyees] = useState<string[]>([]);
+    const [erreurAction, setErreurAction] = useState(false);
 
     useEffect(() => {
         const stop = suivreCellules(

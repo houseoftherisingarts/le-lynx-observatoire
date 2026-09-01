@@ -22,7 +22,7 @@ const TEXTES = {
     intro: "Voici où la mobilisation se donne rendez-vous. Confirmez votre présence pour que le comité sache sur combien de personnes il peut compter.",
     inscrire: 'Inscrire un événement',
     aucun: 'Aucun rendez-vous inscrit',
-    aucunDesc: "Le prochain événement apparaîtra ici dès qu'une personne l'aura inscrit. Vous pouvez ouvrir le formulaire et annoncer le vôtre.",
+    aucunDesc: "Le prochain rendez-vous apparaîtra ici dès qu'une personne l'aura inscrit. Ouvrez le formulaire et annoncez le vôtre.",
     passes: 'Événements passés',
     presences: 'présences confirmées', unePresence: 'présence confirmée',
     seraiLa: 'Je serai là', confirme: 'Présence confirmée',
@@ -30,7 +30,8 @@ const TEXTES = {
     calendrier: 'Ajouter au calendrier', telecharger: 'Télécharger le fichier .ics',
     supprimer: "Supprimer l'événement", confirmerSuppr: 'Supprimer cet événement définitivement ?',
     erreur: 'La liste des événements ne se charge pas',
-    erreurDesc: "Votre accès à cette collection a été refusé ou la connexion a été coupée. Rechargez la page dans un instant.",
+    erreurDesc: "La connexion s'est interrompue avant que la liste arrive. Rechargez la page dans un instant.",
+    echecSuppr: "La suppression n'a pas abouti. Réessayez dans un moment.",
     encours: 'En cours', dans: 'dans', jour: 'j', heure: 'h', minute: 'min',
     formTitre: 'Inscrire un événement', fTitle: 'Titre', fType: 'Type',
     fDate: 'Date et heure', fLieu: 'Lieu', fAdresse: 'Adresse (facultatif)',
@@ -47,7 +48,7 @@ const TEXTES = {
     intro: 'These are the upcoming gatherings. Confirm your attendance so the committee knows how many people it can count on.',
     inscrire: 'Add an event',
     aucun: 'No gathering listed yet',
-    aucunDesc: 'The next event will show up here as soon as someone adds it. You can open the form and announce yours.',
+    aucunDesc: 'The next gathering shows up here as soon as someone adds it. Open the form and announce yours.',
     passes: 'Past events',
     presences: 'people confirmed', unePresence: 'person confirmed',
     seraiLa: "I'll be there", confirme: 'Attendance confirmed',
@@ -55,7 +56,8 @@ const TEXTES = {
     calendrier: 'Add to calendar', telecharger: 'Download the .ics file',
     supprimer: 'Delete this event', confirmerSuppr: 'Delete this event for good?',
     erreur: 'The event list will not load',
-    erreurDesc: 'Access to this collection was denied or the connection dropped. Reload the page in a moment.',
+    erreurDesc: 'The connection dropped before the list arrived. Reload the page in a moment.',
+    echecSuppr: 'The event was not deleted. Try again in a moment.',
     encours: 'Under way', dans: 'in', jour: 'd', heure: 'h', minute: 'min',
     formTitre: 'Add an event', fTitle: 'Title', fType: 'Type',
     fDate: 'Date and time', fLieu: 'Place', fAdresse: 'Address (optional)',
@@ -126,6 +128,7 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
   const [passesOuverts, setPassesOuverts] = useState(false);
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const [maintenant, setMaintenant] = useState(() => Date.now());
+  const [avis, setAvis] = useState('');
 
   useEffect(() => {
     const desabonner = suivreEvenements(
@@ -142,10 +145,11 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
 
   const supprimer = async (id: string) => {
     if (!window.confirm(t.confirmerSuppr)) return;
+    setAvis('');
     try {
       await supprimerEvenement(id);
     } catch {
-      setErreur(true);
+      setAvis(t.echecSuppr);
     }
   };
 
@@ -162,6 +166,11 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
           {t.inscrire}
         </button>
       </header>
+      {avis && (
+        <p className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-3 text-sm text-amber-300">
+          {avis}
+        </p>
+      )}
       {erreur && (
         <div className="glass-card rounded-3xl border border-red-500/20 p-8 text-center">
           <AlertTriangle className="mx-auto h-8 w-8 text-red-400" />
@@ -182,7 +191,7 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
         </div>
       )}
       {liste.aVenir.length > 0 && (
-        <ol className="relative space-y-5 border-l border-white/5 pl-4 md:pl-8">
+        <ol className="relative ml-1 space-y-5 border-l border-white/5 pl-4 md:pl-8">
           {liste.aVenir.map((ev) => (
             <li key={ev.id} className="relative">
               <span className="absolute -left-[21px] top-8 h-2 w-2 rounded-full bg-emerald-500 md:-left-[37px]" />
@@ -211,8 +220,8 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
                   key={ev.id}
                   className="flex flex-col gap-1 rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4 md:flex-row md:items-center md:justify-between"
                 >
-                  <span className="text-sm font-medium text-slate-400" style={deuxLignes}>{ev.title}</span>
-                  <span className="text-xs text-slate-500">
+                  <span className="min-w-0 break-words text-sm font-medium text-slate-400" style={deuxLignes}>{ev.title}</span>
+                  <span className="min-w-0 break-words text-xs text-slate-500">
                     {ev.dateDisplay || new Date(ev.startsAt).toLocaleDateString(locale)} · {ev.lieu}
                   </span>
                 </li>
@@ -279,7 +288,7 @@ const CarteEvenement: React.FC<CarteProps> = ({
     lien.href = url;
     lien.download = liens.nomFichier;
     lien.click();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   return (
@@ -311,14 +320,14 @@ const CarteEvenement: React.FC<CarteProps> = ({
           <h3 className="mt-3 font-serif text-xl leading-snug text-white md:text-2xl" style={deuxLignes}>
             {evenement.title}
           </h3>
-          <p className="mt-2 flex items-center gap-2 text-sm text-slate-400">
+          <p className="mt-2 flex min-w-0 items-center gap-2 text-sm text-slate-400">
             <MapPin className="h-4 w-4 shrink-0 text-slate-600" />
-            <span className="truncate">
+            <span className="min-w-0 truncate">
               {evenement.lieu}{evenement.adresse ? `, ${evenement.adresse}` : ''}
             </span>
           </p>
           {evenement.description && (
-            <p className="mt-3 text-sm leading-relaxed text-slate-400">{evenement.description}</p>
+            <p className="mt-3 break-words text-sm leading-relaxed text-slate-400">{evenement.description}</p>
           )}
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
@@ -414,13 +423,13 @@ const ModaleEvenement: React.FC<{ t: Textes; locale: string; onFermer: () => voi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center" role="dialog" aria-modal="true" aria-labelledby="titre-modale-evenement">
       <form
         onSubmit={soumettre}
         className="glass-panel max-h-[90vh] w-full max-w-xl animate-fade-in overflow-y-auto rounded-3xl border border-white/10 p-6 md:p-8"
       >
         <div className="flex items-start justify-between gap-4">
-          <h3 className="font-serif text-2xl text-white">{t.formTitre}</h3>
+          <h3 id="titre-modale-evenement" className="font-serif text-2xl text-white">{t.formTitre}</h3>
           <button type="button" onClick={onFermer} aria-label={t.annuler} className="rounded-full border border-white/5 p-2 text-slate-400 transition-all hover:border-white/10 hover:text-white">
             <X className="h-4 w-4" />
           </button>
