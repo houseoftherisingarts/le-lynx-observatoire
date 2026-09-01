@@ -18,9 +18,10 @@ import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import { db } from './firebaseConfig';
 
 /**
- * Le Mur : la place publique de l'Observatoire. Un billet, des votes, des
- * commentaires. Le navigateur n'ecrit jamais les compteurs : il pose son
- * propre document de vote et son commentaire, une fonction serveur recompte.
+ * Le Mur est la place publique de l'Observatoire. Chaque membre y depose un
+ * billet, le fait monter ou descendre par son vote, et repond aux autres.
+ * Le navigateur n'ecrit jamais les compteurs : il pose son propre document de
+ * vote et son propre commentaire, et une fonction serveur recompte le total.
  */
 
 // --- Types ------------------------------------------------------------------
@@ -99,6 +100,7 @@ export const suivreLeMur = (
   onError?: (e: unknown) => void
 ): (() => void) => {
   let desabonnerSecours: (() => void) | null = null;
+  let ferme = false;
 
   const secours = () =>
     onSnapshot(
@@ -112,7 +114,8 @@ export const suivreLeMur = (
     (snap) => cb(ordonner(mapDocs<BilletMur>(snap))),
     (e) => {
       if ((e as { code?: string }).code === 'failed-precondition' && !desabonnerSecours) {
-        desabonnerSecours = secours();
+        // L'index composite (fil, chaleur) manque : on retombe sur la chaleur seule.
+        if (!ferme) desabonnerSecours = secours();
         return;
       }
       onError?.(e);
@@ -120,8 +123,10 @@ export const suivreLeMur = (
   );
 
   return () => {
+    ferme = true;
     desabonner();
     desabonnerSecours?.();
+    desabonnerSecours = null;
   };
 };
 
@@ -142,7 +147,15 @@ export const suivreMesVotes = (
       });
       cb(votes);
     },
-    (e) => onError?.(e)
+    (e) => {
+      if ((e as { code?: string }).code === 'failed-precondition') {
+        console.warn(
+          "Le Mur n'a pas pu lire vos votes : il manque l'index de groupe " +
+            'sur le champ uid de la collection votes (queryScope COLLECTION_GROUP).'
+        );
+      }
+      onError?.(e);
+    }
   );
 
 export const suivreCommentaires = (
@@ -244,7 +257,7 @@ export const epingler = async (postId: string, valeur: boolean): Promise<void> =
 
 export const televerserPhotoMur = async (uid: string, file: File): Promise<string> => {
   if (!file.type.startsWith('image/')) throw new Error("Ce fichier n'est pas une image.");
-  if (file.size > 10 * 1024 * 1024) throw new Error('Cette image dépasse 10 Mo.');
+  if (file.size >= 10 * 1024 * 1024) throw new Error('Cette image dépasse 10 Mo.');
   const nom = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-60)}`;
   const cible = ref(getStorage(), `mur/${uid}/${nom}`);
   await uploadBytes(cible, file, { contentType: file.type });

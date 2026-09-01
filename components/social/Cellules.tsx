@@ -238,6 +238,7 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
             setMot('');
         } catch (e) {
             console.error('Demande refusée', e);
+            setErreurAction(true);
         } finally {
             setEnCours(false);
         }
@@ -247,25 +248,35 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
         if (!profile || !detail || !texte.trim()) return;
         const contenu = texte;
         setTexte('');
-        await envoyerDansCellule(detail.id, { uid: profile.uid, nom: profile.displayName }, contenu).catch((e) =>
-            console.error('Message refusé', e)
-        );
+        setErreurAction(false);
+        await envoyerDansCellule(detail.id, { uid: profile.uid, nom: profile.displayName }, contenu).catch((e) => {
+            console.error('Message refusé', e);
+            setTexte(contenu);
+            setErreurAction(true);
+        });
     };
 
+    // La demande garde sa trace : la personne voit le verdict au retour. Le
+    // fondateur efface la ligne quand il a fini avec elle.
     const handleReponse = async (d: DemandeCellule, accepte: boolean) => {
         if (!detail) return;
-        await repondreDemande(detail.id, d.uid, accepte, detail.membreUids || [], detail.nbMembres || 0).catch((e) =>
-            console.error('Réponse refusée', e)
-        );
-        await effacerDemande(detail.id, d.uid).catch(() => undefined);
+        setErreurAction(false);
+        await repondreDemande(detail.id, d.uid, accepte, detail.membreUids || []).catch((e) => {
+            console.error('Réponse refusée', e);
+            setErreurAction(true);
+        });
     };
 
     const handleQuitter = async () => {
         if (!profile || !detail) return;
-        await quitterCellule(detail.id, profile.uid, detail.membreUids || []).catch((e) =>
-            console.error('Sortie refusée', e)
-        );
-        setOuvertId(null);
+        setErreurAction(false);
+        try {
+            await quitterCellule(detail.id, profile.uid, detail.membreUids || []);
+            setOuvertId(null);
+        } catch (e) {
+            console.error('Sortie refusée', e);
+            setErreurAction(true);
+        }
     };
 
     const boutonCarte = (c: Cellule) => {

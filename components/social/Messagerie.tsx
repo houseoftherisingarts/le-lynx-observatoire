@@ -147,14 +147,28 @@ const Messagerie: React.FC<MessagerieProps> = ({ language, ouvrirAvec = null }) 
   // Alliances en direct.
   useEffect(() => {
     if (!uid) return;
-    const stop = suivreMesAlliances(uid, setAlliances, () => setErreur(true));
+    const stop = suivreMesAlliances(
+      uid,
+      (a) => {
+        setErreur(false);
+        setAlliances(a);
+      },
+      () => setErreur(true)
+    );
     return () => stop();
   }, [uid]);
 
   // Conversations en direct.
   useEffect(() => {
     if (!uid) return;
-    const stop = suivreMesConversations(uid, setConversations, () => setErreur(true));
+    const stop = suivreMesConversations(
+      uid,
+      (c) => {
+        setErreur(false);
+        setConversations(c);
+      },
+      () => setErreur(true)
+    );
     return () => stop();
   }, [uid]);
 
@@ -164,7 +178,14 @@ const Messagerie: React.FC<MessagerieProps> = ({ language, ouvrirAvec = null }) 
       setMessages([]);
       return;
     }
-    const stop = suivreMessages(actif, setMessages, () => setErreur(true));
+    const stop = suivreMessages(
+      actif,
+      (m) => {
+        setErreur(false);
+        setMessages(m);
+      },
+      () => setErreur(true)
+    );
     return () => stop();
   }, [actif]);
 
@@ -228,18 +249,23 @@ const Messagerie: React.FC<MessagerieProps> = ({ language, ouvrirAvec = null }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, ouvrirAvec, moi]);
 
+  // Le fil ouvert vaut lecture, y compris pour ce qui arrive pendant la lecture.
+  useEffect(() => {
+    if (!uid || !actif || !entreeActive || entreeActive.nonLus === 0) return;
+    void marquerLu(actif, uid).catch(() => setErreur(true));
+  }, [uid, actif, entreeActive]);
+
   // Descend au dernier message.
   useEffect(() => {
     basDuFil.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length, actif]);
 
   const choisir = async (entree: Entree) => {
-    setActif(entree.pairId);
-    setVoletMobile('fil');
     setTexte('');
     try {
       await ouvrirConversation(moi, { uid: entree.autreUid, nom: entree.autreNom });
-      if (entree.nonLus > 0) await marquerLu(entree.pairId, uid);
+      setActif(entree.pairId);
+      setVoletMobile('fil');
     } catch {
       setErreur(true);
     }

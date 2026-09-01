@@ -146,7 +146,8 @@ export async function assurerFicheMembre(profile: UserProfile): Promise<void> {
     engagement: borner(profile.implicationLevel, 1, 5, 1),
     devise: '',
     roles: [],
-    verifie: false,
+    // `verifie` n'est jamais ecrit ici : la regle refuse toute ecriture du
+    // navigateur qui touche ce champ, et l'absence vaut « pas verifie ».
     depuis: serverTimestamp(),
     maj: serverTimestamp(),
   });
