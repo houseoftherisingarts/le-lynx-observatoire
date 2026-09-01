@@ -131,13 +131,18 @@ const nettoyer = (data: DonneesEvenement) => {
 
 // --- Lecture ----------------------------------------------------------------
 
-/** Abonnement direct, trie par date croissante, separe a venir et passes. */
+/**
+ * Abonnement direct, separe a venir et passes.
+ * La requete descend depuis la date la plus lointaine : avec un tri croissant,
+ * la limite ne rendrait que les 200 plus vieux evenements et la liste des
+ * rendez-vous a venir se viderait des que les archives depassent la limite.
+ */
 export const suivreEvenements = (
   cb: (liste: ListeEvenements) => void,
   onErreur?: (e: unknown) => void
 ): Unsubscribe =>
   onSnapshot(
-    query(collection(db, 'events'), orderBy('startsAt', 'asc'), limit(200)),
+    query(collection(db, 'events'), orderBy('startsAt', 'desc'), limit(200)),
     (snap) => {
       const maintenant = Date.now();
       const aVenir: Evenement[] = [];
@@ -161,8 +166,8 @@ export const suivreEvenements = (
         if (ev.startsAt >= maintenant) aVenir.push(ev);
         else passes.push(ev);
       });
-      passes.reverse();
-      cb({ aVenir, passes });
+      aVenir.reverse(); // du plus proche au plus lointain
+      cb({ aVenir, passes }); // passes : du plus recent au plus ancien
     },
     (e) => onErreur?.(e)
   );
