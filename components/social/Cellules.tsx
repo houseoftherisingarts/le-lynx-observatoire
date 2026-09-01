@@ -443,14 +443,27 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                 </div>
             )}
 
+            {ouvertId && !detail && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
+                    <div className="glass-panel w-full max-w-md rounded-3xl border border-white/10 bg-[#02040a] p-8 text-center">
+                        <ShieldAlert size={26} className="text-amber-500 mx-auto mb-4" />
+                        <p className="text-sm font-bold text-white mb-2">{t.absenteTitre}</p>
+                        <p className="text-xs text-slate-400 leading-relaxed mb-6">{t.absenteTexte}</p>
+                        <button onClick={() => setOuvertId(null)} className="px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 rounded-full text-xs font-bold transition-all">
+                            {t.retour}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {ouvertId && detail && (
                 <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl animate-fade-in overflow-y-auto p-4 md:p-8">
                     <div className="glass-panel w-full max-w-5xl mx-auto rounded-3xl border border-white/10 bg-[#02040a] overflow-hidden">
                         <div className="p-6 md:p-8 border-b border-white/5 flex items-start justify-between gap-4">
-                            <div>
-                                <span className={`${etiquetteClasse} text-emerald-500`}>{detail.municipalite || detail.theme || t.etiquette}</span>
-                                <h3 className="text-2xl md:text-3xl font-serif text-white mt-2">{detail.nom}</h3>
-                                <p className="text-sm text-slate-400 mt-3 max-w-2xl leading-relaxed">{detail.description}</p>
+                            <div className="min-w-0">
+                                <span className={`${etiquetteClasse} text-emerald-500 block truncate`}>{detail.municipalite || detail.theme || t.etiquette}</span>
+                                <h3 className="text-2xl md:text-3xl font-serif text-white mt-2" style={deuxLignes}>{detail.nom}</h3>
+                                <p className="text-sm text-slate-400 mt-3 max-w-2xl leading-relaxed break-words">{detail.description}</p>
                             </div>
                             <button onClick={() => setOuvertId(null)} className="text-slate-500 hover:text-white p-2 shrink-0"><X size={20} /></button>
                         </div>
