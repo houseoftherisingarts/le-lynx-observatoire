@@ -156,6 +156,14 @@ async function runAudit(trigger) {
         ok: items.length > 0,
         rawPreview: text.slice(0, 1500),
     });
+    // Etat public de la veille, lisible par tout le monde sur la page Nouvelles.
+    batch.set(db.collection("auditStatus").doc("latest"), {
+        lastRunAt: new Date().toISOString(),
+        trigger,
+        found: items.length,
+        written: added,
+        ok: items.length > 0,
+    });
     await batch.commit();
     return { found: items.length, added, runId: runRef.id };
 }
