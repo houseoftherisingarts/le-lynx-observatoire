@@ -206,6 +206,7 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
             setOuvertId(id);
         } catch (e) {
             console.error('Création de cellule refusée', e);
+            setErreurAction(true);
         } finally {
             setEnCours(false);
         }
@@ -216,17 +217,20 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
             await signInWithGoogle().catch(() => undefined);
             return;
         }
+        setErreurAction(false);
         try {
-            await rejoindreCellule(c.id, profile.uid, c.nbMembres || 0);
+            await rejoindreCellule(c.id, profile.uid, c.membreUids || []);
             setOuvertId(c.id);
         } catch (e) {
             console.error('Entrée refusée', e);
+            setErreurAction(true);
         }
     };
 
     const handleDemande = async () => {
         if (!profile || !demandeCible) return;
         setEnCours(true);
+        setErreurAction(false);
         try {
             await demanderAcces(demandeCible.id, { uid: profile.uid, nom: profile.displayName }, mot);
             setDemandesEnvoyees((d) => [...d, demandeCible.id]);

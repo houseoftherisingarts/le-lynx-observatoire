@@ -111,7 +111,13 @@ export const demanderAlliance = async (moi: Personne, autre: Personne): Promise<
     throw new Error('Alliance impossible avec soi-meme.');
   }
   const pairId = clePaire(moi.uid, autre.uid);
-  await setDoc(doc(db, 'amities', pairId), {
+  const ref = doc(db, 'amities', pairId);
+  // Les regles refusent la lecture d'un document absent (resource est nul), donc un
+  // echec de lecture se lit ici comme « rien encore ». Et si la fiche existe deja,
+  // un setDoc complet serait refuse : la regle d'update n'autorise que statut et majLe.
+  const deja = await getDoc(ref).catch(() => null);
+  if (deja && deja.exists()) return pairId;
+  await setDoc(ref, {
     paire: [moi.uid, autre.uid].sort(),
     de: moi.uid,
     noms: {
@@ -160,8 +166,8 @@ export const suivreMesAlliances = (
       });
     },
     (e) => {
-      onError?.(e);
       cb({ recues: [], envoyees: [], acceptees: [] });
+      onError?.(e);
     }
   );
 
@@ -174,8 +180,10 @@ export const ouvrirConversation = async (moi: Personne, autre: Personne): Promis
   }
   const pairId = clePaire(moi.uid, autre.uid);
   const ref = doc(db, 'dms', pairId);
-  const existante = await getDoc(ref);
-  if (!existante.exists()) {
+  // Meme piege que pour les alliances : sur un document absent, la regle de lecture
+  // deshabille un `resource` nul et renvoie un refus. Le refus vaut « a creer ».
+  const existante = await getDoc(ref).catch(() => null);
+  if (!existante || !existante.exists()) {
     await setDoc(ref, {
       participantUids: [moi.uid, autre.uid].sort(),
       participantNoms: {
@@ -205,8 +213,8 @@ export const suivreMesConversations = (
       cb(conversations);
     },
     (e) => {
-      onError?.(e);
       cb([]);
+      onError?.(e);
     }
   );
 
@@ -220,8 +228,8 @@ export const suivreMessages = (
     query(collection(db, 'dms', pairId, 'messages'), orderBy('creeLe', 'desc'), limit(200)),
     (snap) => cb(mapDocs<MessagePrive>(snap).reverse()),
     (e) => {
-      onError?.(e);
       cb([]);
+      onError?.(e);
     }
   );
 
