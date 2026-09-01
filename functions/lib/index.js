@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.claudeSummary = exports.claudeChat = void 0;
+exports.runAuditNow = exports.dailyAudit = exports.claudeSummary = exports.claudeChat = void 0;
 const functions = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const sdk_1 = require("@anthropic-ai/sdk");
@@ -148,4 +148,8 @@ N'utilise pas de markdown gras ou italique. Juste le texte brut avec les sépara
         res.status(500).json({ error: "Erreur d'analyse." });
     }
 });
+// Veille quotidienne (audit gouvernemental + nouvelles)
+var audit_1 = require("./audit");
+Object.defineProperty(exports, "dailyAudit", { enumerable: true, get: function () { return audit_1.dailyAudit; } });
+Object.defineProperty(exports, "runAuditNow", { enumerable: true, get: function () { return audit_1.runAuditNow; } });
 //# sourceMappingURL=index.js.map

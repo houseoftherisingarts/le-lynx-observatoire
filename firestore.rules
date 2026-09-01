@@ -2,12 +2,157 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can read and write their own profile
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    function signedIn() {
+      return request.auth != null;
     }
 
-    // Rate limits and summary cache are managed by Cloud Functions (admin SDK) only
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function str(field, maxLen) {
+      return request.resource.data[field] is string
+        && request.resource.data[field].size() > 0
+        && request.resource.data[field].size() <= maxLen;
+    }
+
+    // --- Profils ---------------------------------------------------------
+    // Un membre lit les profils des autres membres (mur, commentaires,
+    // trombinoscope), mais n'ecrit que le sien. Le role ne se change
+    // jamais depuis le navigateur.
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if isOwner(userId)
+        && request.resource.data.role == 'member';
+      allow update: if (isOwner(userId)
+                        && request.resource.data.role == resource.data.role)
+                    || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --- Veille quotidienne ---------------------------------------------
+    // Ecrite uniquement par la fonction planifiee (SDK admin).
+    match /news/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /auditRuns/{doc} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // --- Mur de la communaute -------------------------------------------
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && str('text', 5000)
+        && request.resource.data.reactionCount == 0
+        && request.resource.data.commentCount == 0;
+      allow update: if isAdmin()
+        || (isOwner(resource.data.authorId)
+            && request.resource.data.authorId == resource.data.authorId);
+      allow delete: if isAdmin() || isOwner(resource.data.authorId);
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if signedIn()
+          && request.resource.data.authorId == request.auth.uid
+          && str('text', 2000);
+        allow update: if isAdmin() || isOwner(resource.data.authorId);
+        allow delete: if isAdmin() || isOwner(resource.data.authorId);
+      }
+
+      // Une reaction par personne, l'identifiant du document est l'uid.
+      match /reactions/{uid} {
+        allow read: if true;
+        allow write: if isOwner(uid);
+      }
+    }
+
+    // --- Actions de mobilisation -----------------------------------------
+    match /actions/{actionId} {
+      allow read: if true;
+      allow create: if signedIn() && str('title', 200);
+      // Un membre ne peut toucher qu'a la liste des participants.
+      allow update: if isAdmin()
+        || isOwner(resource.data.authorId)
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['participantIds', 'participantCount']));
+      allow delete: if isAdmin() || isOwner(resource.data.authorId);
+    }
+
+    // --- Salon de discussion ---------------------------------------------
+    match /chat/{messageId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.authorId == request.auth.uid
+        && str('text', 1000);
+      allow update: if false;
+      allow delete: if isAdmin() || isOwner(resource.data.authorId);
+    }
+
+    // --- Evenements et presences -----------------------------------------
+    match /events/{eventId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+
+      match /rsvps/{uid} {
+        allow read: if signedIn();
+        allow write: if isOwner(uid) || isAdmin();
+      }
+    }
+
+    // --- Questions du public ---------------------------------------------
+    // Ouvert a tous en ecriture (une question, pas un compte), lecture
+    // publique une fois approuvee. La moderation appartient a l'admin.
+    match /questions/{questionId} {
+      allow read: if true;
+      allow create: if str('name', 120)
+        && str('question', 1000)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.upvotes == 0;
+      allow update: if isAdmin()
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['upvotes', 'upvoterIds']));
+      allow delete: if isAdmin();
+    }
+
+    // --- Signalement d'un autre projet ------------------------------------
+    match /projectSubmissions/{docId} {
+      allow read: if isAdmin();
+      allow create: if str('projectName', 200) && str('description', 4000);
+      allow update, delete: if isAdmin();
+    }
+
+    // --- Publications du CALME -------------------------------------------
+    match /calmPosts/{postId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // --- Ressources partagees --------------------------------------------
+    match /resources/{docId} {
+      allow read: if true;
+      allow create: if signedIn() && str('title', 200);
+      allow update, delete: if isAdmin() || isOwner(resource.data.authorId);
+    }
+
+    // --- Notifications ----------------------------------------------------
+    match /notifications/{uid}/items/{itemId} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // --- Gere par les fonctions uniquement --------------------------------
     match /rateLimits/{doc} {
       allow read, write: if false;
     }
