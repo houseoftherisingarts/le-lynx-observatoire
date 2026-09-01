@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { submitProjectReport } from '../services/socialService';
 import { AlertTriangle, Send, MapPin, FileText, Type, User, Info } from 'lucide-react';
 import { ProjectSubmission, Language } from '../types';
 
@@ -117,7 +118,10 @@ const SubmitProject: React.FC<SubmitProjectProps> = ({ onSubmit, language }) => 
 
     const t = translations[language];
 
-    const handleSubmit = () => {
+    const [envoiEnCours, setEnvoiEnCours] = useState(false);
+    const [erreurEnvoi, setErreurEnvoi] = useState(false);
+
+    const handleSubmit = async () => {
         if (!formData.projectName || !formData.location || !formData.description) return;
 
         const newSubmission: ProjectSubmission = {
@@ -130,6 +134,26 @@ const SubmitProject: React.FC<SubmitProjectProps> = ({ onSubmit, language }) => 
             contactEmail: formData.contactEmail,
             date: new Date().toLocaleDateString()
         };
+
+        setEnvoiEnCours(true);
+        setErreurEnvoi(false);
+        try {
+            // Le signalement se garde dans le registre, il ne vit plus dans l'onglet.
+            await submitProjectReport({
+                projectName: newSubmission.projectName,
+                type: newSubmission.type,
+                location: newSubmission.location,
+                description: newSubmission.description,
+                submittedBy: newSubmission.submittedBy,
+                contactEmail: newSubmission.contactEmail,
+            });
+        } catch (e) {
+            console.error('Signalement refuse', e);
+            setErreurEnvoi(true);
+            setEnvoiEnCours(false);
+            return;
+        }
+        setEnvoiEnCours(false);
 
         onSubmit(newSubmission);
         setSubmitted(true);
@@ -285,12 +309,17 @@ const SubmitProject: React.FC<SubmitProjectProps> = ({ onSubmit, language }) => 
                             </div>
                         </div>
 
+                        {erreurEnvoi && (
+                            <p className="text-xs text-red-400 mb-3 leading-relaxed">
+                                L'envoi n'a pas abouti. Verifiez votre connexion, puis relancez le bouton.
+                            </p>
+                        )}
                         <button 
                             onClick={handleSubmit}
-                            disabled={!formData.projectName || !formData.location}
+                            disabled={!formData.projectName || !formData.location || envoiEnCours}
                             className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/20 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {t.sendBtn}
+                            {envoiEnCours ? 'Envoi en cours' : t.sendBtn}
                         </button>
                     </div>
                 </div>

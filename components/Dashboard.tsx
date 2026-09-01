@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getSituationSummary } from '../services/claudeService';
 import { AuthState, Language, CalmPost } from '../types';
+import { subscribeToCalmPosts, createCalmPost, CalmEntry } from '../services/socialService';
 import { Users, AlertTriangle, Activity, Droplets, ChevronDown, CheckCircle, Target, Shield, Clock, AlertOctagon, ExternalLink, X, Phone, FileText, Feather, ArrowRight, Hand, PenTool, BookOpen, HelpCircle, Eye, Share2, Facebook, Instagram, Twitter, Check, Copy, RefreshCw, Loader, Download, Smartphone, Map, Lock, Unlock, Plus, Edit3 } from 'lucide-react';
 
 interface DashboardProps {
@@ -44,21 +45,27 @@ const Dashboard: React.FC<DashboardProps> = ({ authState, setViewState, onNaviga
   // CALME State
   const [isCalmModalOpen, setIsCalmModalOpen] = useState(false);
   const [isCalmAdmin, setIsCalmAdmin] = useState(false);
-  const [calmPassword, setCalmPassword] = useState('');
   const [calmLoginError, setCalmLoginError] = useState(false);
   const [newCalmPost, setNewCalmPost] = useState({ title: '', content: '' });
   const [isPostingCalm, setIsPostingCalm] = useState(false);
   const [calmTab, setCalmTab] = useState<'journal' | 'manifesto'>('journal');
   
-  const [calmPosts, setCalmPosts] = useState<CalmPost[]>([
-      {
-          id: '1',
-          title: 'Lancement du journal "Mine de rien"',
-          date: '24 Octobre 2025',
-          author: 'Le CALME',
-          content: 'Alors que notre région a été désertée par ses journaux au fil des ans, il nous semblait nécessaire de créer un espace d\'écrits et de dessins pour opposer une force collective à Lomiko et son monde.'
-      }
-  ]);
+  // Le journal du CALME vit dans le registre, il survit au rechargement.
+  const [calmPosts, setCalmPosts] = useState<CalmPost[]>([]);
+  useEffect(() => {
+      const arreter = subscribeToCalmPosts((rows: CalmEntry[]) => {
+          setCalmPosts(rows.map((r) => ({
+              id: r.id,
+              title: r.title,
+              content: r.content,
+              author: r.author || 'Le CALME',
+              date: r.createdAt
+                  ? r.createdAt.toDate().toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })
+                  : '',
+          })));
+      });
+      return arreter;
+  }, []);
 
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -291,23 +298,20 @@ const Dashboard: React.FC<DashboardProps> = ({ authState, setViewState, onNaviga
       if(isAdmin) {
           setIsCalmAdmin(true);
           setCalmLoginError(false);
-          setCalmPassword('');
       } else {
           setCalmLoginError(true);
       }
   };
 
-  const handlePostCalm = () => {
+  const handlePostCalm = async () => {
       if(!newCalmPost.title || !newCalmPost.content) return;
-      const post: CalmPost = {
-          id: Date.now().toString(),
-          title: newCalmPost.title,
-          content: newCalmPost.content,
-          date: new Date().toLocaleDateString('fr-CA', {day: 'numeric', month: 'long', year: 'numeric'}),
-          author: 'Le CALME'
-      };
-      setCalmPosts([post, ...calmPosts]);
-      setNewCalmPost({ title: '', content: '' });
+      try {
+          await createCalmPost(newCalmPost.title, newCalmPost.content);
+          setNewCalmPost({ title: '', content: '' });
+      } catch (e) {
+          console.error('Publication du CALME refusee', e);
+          return;
+      }
       setIsPostingCalm(false);
   };
 
@@ -556,27 +560,16 @@ const Dashboard: React.FC<DashboardProps> = ({ authState, setViewState, onNaviga
                                     {!isCalmAdmin ? (
                                         <div className="space-y-3">
                                             <button 
-                                                onClick={() => {}}
-                                                className="text-xs text-slate-500 hover:text-white flex items-center gap-2 transition-colors cursor-default"
+                                                onClick={handleCalmLogin}
+                                                className="text-xs text-slate-500 hover:text-white flex items-center gap-2 transition-colors"
                                             >
                                                 <Lock size={12}/> Accès Membres Comité
                                             </button>
-                                            <div className="flex gap-2">
-                                                <input 
-                                                    type="password" 
-                                                    placeholder="Mot de passe" 
-                                                    value={calmPassword}
-                                                    onChange={(e) => setCalmPassword(e.target.value)}
-                                                    className="bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs text-white w-full focus:outline-none focus:border-white/30"
-                                                />
-                                                <button 
-                                                    onClick={handleCalmLogin}
-                                                    className="bg-white text-black px-3 rounded text-xs font-bold hover:bg-slate-200"
-                                                >
-                                                    OK
-                                                </button>
-                                            </div>
-                                            {calmLoginError && <p className="text-red-500 text-[10px]">Mot de passe incorrect.</p>}
+                                            {calmLoginError && (
+                                                <p className="text-red-500 text-[10px] leading-relaxed">
+                                                    Cet espace appartient au comité. Connectez-vous avec le compte inscrit au registre pour y écrire.
+                                                </p>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="bg-emerald-900/20 border border-emerald-500/20 p-4 rounded-xl">

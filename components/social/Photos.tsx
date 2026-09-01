@@ -35,20 +35,16 @@ const TEXTES = {
   fr: {
     etiquette: 'Galerie des membres',
     titre: 'Le territoire, photographié par ceux qui y vivent',
-    intro:
-      "Voici les images déposées par les membres de l'Observatoire : le territoire, les rassemblements, les traces du chantier. Chaque photo passe par une relecture avant de paraître ici.",
+    intro: "Voici les images déposées par les membres de l'Observatoire : le territoire, les rassemblements, les traces du chantier. Chaque photo passe par une relecture avant de paraître ici.",
     ajouter: 'Ajouter une photo',
     ongletGalerie: 'La galerie',
     ongletFile: 'À relire',
     aucune: 'Aucune photo dans la galerie',
-    aucuneDesc:
-      "Les premières images arriveront dès qu'un membre en déposera. Vous pouvez ouvrir le formulaire et déposer la vôtre.",
+    aucuneDesc: "Les premières images arriveront dès qu'un membre en déposera. Vous pouvez ouvrir le formulaire et déposer la vôtre.",
     fileVide: 'Rien à relire',
-    fileVideDesc:
-      "La file est vide. Toute nouvelle photo déposée par un membre apparaîtra ici en attente de votre décision.",
+    fileVideDesc: "La file est vide. Toute nouvelle photo déposée par un membre apparaîtra ici en attente de votre décision.",
     erreur: 'La galerie ne se charge pas',
-    erreurDesc:
-      "Votre accès a été refusé ou la connexion a été coupée. Rechargez la page dans un instant.",
+    erreurDesc: "Votre accès a été refusé ou la connexion a été coupée. Rechargez la page dans un instant.",
     connectez: 'Connectez-vous pour déposer une photo.',
     formTitre: 'Déposer une photo',
     fFichier: 'Choisir une image',
@@ -67,8 +63,7 @@ const TEXTES = {
     manqueLegende: 'La légende est obligatoire.',
     echec: "L'envoi a échoué. Réessayez dans un moment.",
     deposee: 'Votre photo est déposée',
-    deposeeDesc:
-      "Elle attend une relecture du comité avant de paraître dans la galerie. Vous n'avez rien d'autre à faire.",
+    deposeeDesc: "Elle attend une relecture du comité avant de paraître dans la galerie. Vous n'avez rien d'autre à faire.",
     approuver: 'Approuver',
     refuser: 'Refuser',
     supprimer: 'Supprimer',
@@ -79,17 +74,14 @@ const TEXTES = {
   en: {
     etiquette: 'Members gallery',
     titre: 'The land, photographed by the people who live on it',
-    intro:
-      'These are the images posted by members of the Observatory: the land, the gatherings, the marks left by the worksite. Every photo goes through a review before it appears here.',
+    intro: 'These are the images posted by members of the Observatory: the land, the gatherings, the marks left by the worksite. Every photo goes through a review before it appears here.',
     ajouter: 'Add a photo',
     ongletGalerie: 'Gallery',
     ongletFile: 'To review',
     aucune: 'No photo in the gallery yet',
-    aucuneDesc:
-      'The first images will arrive as soon as a member posts one. You can open the form and add yours.',
+    aucuneDesc: 'The first images will arrive as soon as a member posts one. You can open the form and add yours.',
     fileVide: 'Nothing to review',
-    fileVideDesc:
-      'The queue is empty. Any new photo posted by a member will appear here awaiting your decision.',
+    fileVideDesc: 'The queue is empty. Any new photo posted by a member will appear here awaiting your decision.',
     erreur: 'The gallery will not load',
     erreurDesc: 'Access was denied or the connection dropped. Reload the page in a moment.',
     connectez: 'Sign in to post a photo.',
@@ -110,8 +102,7 @@ const TEXTES = {
     manqueLegende: 'The caption is required.',
     echec: 'The upload failed. Try again in a moment.',
     deposee: 'Your photo is in',
-    deposeeDesc:
-      'It is waiting for a review by the committee before it appears in the gallery. There is nothing else for you to do.',
+    deposeeDesc: 'It is waiting for a review by the committee before it appears in the gallery. There is nothing else for you to do.',
     approuver: 'Approve',
     refuser: 'Reject',
     supprimer: 'Delete',

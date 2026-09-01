@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Unlock, DollarSign, CheckCircle, PieChart, Shield, Activity, Users, ArrowRight, ExternalLink, CreditCard, Bitcoin, Wallet, Smartphone, Terminal, LayoutList, AlertTriangle, Sliders } from 'lucide-react';
 import { ProjectSubmission, Language } from '../types';
+import { subscribeToProjectReports } from '../services/socialService';
 
 interface AdminPanelProps {
     submissions?: ProjectSubmission[];
@@ -8,6 +9,27 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ submissions = [], language }) => {
+    // Les signalements viennent du registre, pas de la memoire de l'onglet.
+    const [registre, setRegistre] = useState<ProjectSubmission[]>([]);
+    useEffect(() => {
+        const arreter = subscribeToProjectReports(
+            (rows) => setRegistre(rows.map((r) => ({
+                id: r.id,
+                projectName: String(r.projectName ?? ''),
+                type: String(r.type ?? 'Non spécifié'),
+                location: String(r.location ?? ''),
+                description: String(r.description ?? ''),
+                submittedBy: String(r.submittedBy ?? 'Anonyme'),
+                contactEmail: String(r.contactEmail ?? ''),
+                date: (r.createdAt as { toDate?: () => Date } | undefined)?.toDate?.().toLocaleDateString('fr-CA') ?? '',
+            }))),
+            () => setRegistre([])
+        );
+        return arreter;
+    }, []);
+
+    const dossiers = registre.length > 0 ? registre : submissions;
+
     const [activeTab, setActiveTab] = useState<'strategy' | 'requests'>('strategy');
     const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
     const [watchedIds, setWatchedIds] = useState<Set<string>>(new Set());
@@ -184,7 +206,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ submissions = [], language }) =
                         onClick={() => setActiveTab('requests')} 
                         className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${activeTab === 'requests' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                     >
-                         <LayoutList size={14} /> {t.tabRequests} ({submissions.length})
+                         <LayoutList size={14} /> {t.tabRequests} ({dossiers.length})
                     </button>
                 </div>
             </div>
@@ -197,11 +219,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ submissions = [], language }) =
                             <AlertTriangle className="text-red-500" size={20} />
                             {t.ecoReports}
                         </h3>
-                        {submissions.length === 0 ? (
+                        {dossiers.length === 0 ? (
                             <p className="text-slate-500 text-sm text-center py-10">{t.noReports}</p>
                         ) : (
                             <div className="grid gap-4">
-                                {submissions.map((sub) => (
+                                {dossiers.map((sub) => (
                                     <div key={sub.id} className="p-6 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/[0.07] transition-all">
                                         <div className="flex justify-between items-start mb-2">
                                             <h4 className="text-xl font-bold text-slate-200">{sub.projectName}</h4>

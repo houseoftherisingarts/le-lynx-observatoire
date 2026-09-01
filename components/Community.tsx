@@ -88,8 +88,7 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
 
     // Calendar / Share / Delete Modals
     const [calendarModalOpen, setCalendarModalOpen] = useState<Action | null>(null);
-    const [deleteModalOpen, setDeleteModalOpen] = useState<number | null>(null);
-    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteModalOpen, setDeleteModalOpen] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState(false);
     const [isShareMode, setIsShareMode] = useState(false);
 
@@ -476,25 +475,28 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
 
     // Render Logic Helpers
     const renderActionCard = (action: Action) => {
-        const isJoined = authState.user ? action.joinedUserIds.includes(authState.user.id) : false;
+        const isJoined = moi ? (action.participantIds || []).includes(moi.id) : false;
         const timeLeft = calculateTimeLeft(action.timestamp);
         
         return (
             <div key={action.id} className="glass-card p-6 rounded-3xl border border-white/5 bg-[#0a0a0a]/40 hover:bg-[#0a0a0a]/60 transition-all group relative overflow-hidden">
                 {/* Delete Button (Hidden usually) */}
-                <button 
-                    onClick={(e) => { e.stopPropagation(); setDeleteModalOpen(action.id); }}
-                    className="absolute top-4 right-4 p-2 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all z-20"
-                >
-                    <Trash2 size={16} />
-                </button>
+                {(isAdmin || (moi && action.authorId === moi.id)) && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setDeleteModalOpen(action.id); }}
+                        className="absolute top-4 right-4 p-2 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all z-20"
+                        title="Retirer cette action"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                )}
 
                 <div className="flex flex-col md:flex-row gap-6">
                     {/* Date Box */}
                     <div className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-2xl min-w-[100px] border border-white/5 shrink-0">
                         <Calendar className="text-amber-500 mb-2" size={24} />
-                        <span className="text-xs font-bold uppercase text-slate-400 text-center">{action.dateDisplay.split(',')[0]}</span>
-                        <span className="text-lg font-bold text-white mt-1">{action.dateDisplay.split(' ')[2]}</span>
+                        <span className="text-xs font-bold uppercase text-slate-400 text-center">{(action.dateDisplay || '').split(',')[0] || 'À venir'}</span>
+                        <span className="text-lg font-bold text-white mt-1">{(action.dateDisplay || '').split(' ')[2] || ''}</span>
                     </div>
 
                     <div className="flex-1">
@@ -533,7 +535,7 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                                         </div>
                                     ))}
                                 </div>
-                                <span className="text-xs font-bold text-amber-500">+{action.participants} {t.actions.participate}s</span>
+                                <span className="text-xs font-bold text-amber-500">+{action.participantCount || 0} {t.actions.participate}s</span>
                             </div>
 
                             <div className="flex gap-2">
@@ -778,15 +780,14 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                             <Trash2 size={18} className="text-red-500" /> Supprimer l'action ?
                         </h3>
-                        <p className="text-sm text-slate-400 mb-4">Cette action est irréversible. Mot de passe requis.</p>
-                        <input 
-                            type="password"
-                            placeholder="Mot de passe admin"
-                            value={deletePassword}
-                            onChange={(e) => setDeletePassword(e.target.value)}
-                            className="w-full bg-slate-900 border border-white/10 rounded-lg p-3 text-white mb-2"
-                        />
-                        {deleteError && <p className="text-xs text-red-500 mb-4">Mot de passe incorrect</p>}
+                        <p className="text-sm text-slate-400 mb-4 leading-relaxed">
+                            L'action disparait de la liste pour tout le monde, et les inscriptions qui l'accompagnent partent avec elle. Le geste ne se reprend pas.
+                        </p>
+                        {deleteError && (
+                            <p className="text-xs text-red-500 mb-4">
+                                La suppression a ete refusee. Seuls l'auteur de l'action et l'administration peuvent la retirer.
+                            </p>
+                        )}
                         <div className="flex gap-2">
                             <button onClick={() => setDeleteModalOpen(null)} className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-xs font-bold">Annuler</button>
                             <button onClick={handleDeleteAction} className="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold">Supprimer</button>
@@ -934,18 +935,26 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                                             />
                                         </div>
                                         <button 
-                                            onClick={() => {
-                                                if(!newAction.title) return;
-                                                setActions([{
-                                                    id: Date.now(),
-                                                    ...newAction,
-                                                    dateDisplay: newAction.dateRaw,
-                                                    timestamp: Date.now() + 86400000,
-                                                    participants: 1,
-                                                    joinedUserIds: [authState.user!.id]
-                                                }, ...actions]);
-                                                setIsActionWizardOpen(false);
-                                                setNewAction({ type: '', title: '', dateRaw: '', location: '', description: '' });
+                                            onClick={async () => {
+                                                if (!newAction.title) return;
+                                                if (!moi) { setIsAuthModalOpen(true); return; }
+                                                // La date libre se lit quand elle ressemble a une date, sinon
+                                                // l'action se pose a demain pour rester dans la liste a venir.
+                                                const lue = Date.parse(newAction.dateRaw);
+                                                try {
+                                                    await createAction(moi, {
+                                                        type: newAction.type || 'Mobilisation',
+                                                        title: newAction.title,
+                                                        dateDisplay: newAction.dateRaw,
+                                                        timestamp: Number.isNaN(lue) ? Date.now() + 86400000 : lue,
+                                                        location: newAction.location,
+                                                        description: newAction.description,
+                                                    });
+                                                    setIsActionWizardOpen(false);
+                                                    setNewAction({ type: '', title: '', dateRaw: '', location: '', description: '' });
+                                                } catch (e) {
+                                                    console.error('Creation refusee', e);
+                                                }
                                             }}
                                             className="w-full py-3 bg-white text-black font-bold rounded-xl uppercase tracking-widest text-xs hover:bg-slate-200 transition-colors"
                                         >
@@ -1000,32 +1009,119 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                                 </div>
                             </div>
 
-                            {/* Posts Feed */}
-                            {posts.map(post => (
+                            {/* Le fil de la table ronde */}
+                            {chargementMur && (
+                                <div className="space-y-4">
+                                    {[1, 2].map(i => (
+                                        <div key={i} className="glass-card p-6 rounded-2xl animate-pulse">
+                                            <div className="h-4 bg-white/10 rounded w-1/3 mb-3" />
+                                            <div className="h-4 bg-white/5 rounded w-full mb-2" />
+                                            <div className="h-4 bg-white/5 rounded w-4/5" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {!chargementMur && erreurFlux && (
+                                <div className="glass-card p-8 rounded-2xl border border-red-900/30 text-center">
+                                    <p className="text-white font-bold mb-2">La table ronde est momentanement injoignable</p>
+                                    <p className="text-slate-400 text-sm font-light">Le fil se rebranche des que la connexion revient.</p>
+                                </div>
+                            )}
+
+                            {!chargementMur && !erreurFlux && posts.length === 0 && (
+                                <div className="glass-card p-10 rounded-2xl border border-white/5 text-center">
+                                    <MessageCircle className="mx-auto text-slate-600 mb-4" size={26} />
+                                    <p className="text-white font-bold mb-2">La table ronde attend sa premiere parole</p>
+                                    <p className="text-slate-400 text-sm font-light max-w-md mx-auto leading-relaxed">
+                                        Ce que vous ecrivez ici reste visible pour tout le monde et se garde d'une visite a l'autre.
+                                    </p>
+                                </div>
+                            )}
+
+                            {posts.map(post => {
+                                const aReagi = mesReactions.has(post.id);
+                                const filEstOuvert = filOuvert === post.id;
+                                const peutSupprimer = isAdmin || (moi && post.authorId === moi.id);
+                                return (
                                 <div key={post.id} className="glass-card p-6 rounded-2xl border border-white/5 bg-[#0a0a0a]/40 hover:bg-[#0a0a0a]/60 transition-all">
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-full ${post.avatarColor} flex items-center justify-center text-xs font-bold text-white`}>
-                                                {post.user.charAt(0)}
-                                            </div>
+                                            {post.authorPhoto ? (
+                                                <img src={post.authorPhoto} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                            ) : (
+                                                <div className={`w-8 h-8 rounded-full ${avatarTone(post.authorId)} flex items-center justify-center text-xs font-bold text-white`}>
+                                                    {(post.authorName || '?').charAt(0)}
+                                                </div>
+                                            )}
                                             <div>
-                                                <p className="text-sm font-bold text-white">{post.user}</p>
-                                                <p className="text-[10px] text-slate-500">{post.time}</p>
+                                                <p className="text-sm font-bold text-white">{post.authorName}</p>
+                                                <p className="text-[10px] text-slate-500">{timeAgo(post.createdAt, language)}</p>
                                             </div>
                                         </div>
-                                        <button className="text-slate-500 hover:text-white"><Share2 size={16}/></button>
+                                        {peutSupprimer && (
+                                            <button
+                                                onClick={() => handleDeletePost(post.id)}
+                                                className="text-slate-600 hover:text-red-500 transition-colors"
+                                                title="Retirer cette publication"
+                                            >
+                                                <Trash2 size={15}/>
+                                            </button>
+                                        )}
                                     </div>
-                                    <p className="text-slate-300 text-sm leading-relaxed mb-4">{post.text}</p>
+                                    <p className="text-slate-300 text-sm leading-relaxed mb-4 whitespace-pre-wrap">{post.text}</p>
                                     <div className="flex items-center gap-4 border-t border-white/5 pt-3">
-                                        <button className="flex items-center gap-2 text-xs text-slate-500 hover:text-emerald-400 transition-colors">
-                                            <ThumbsUp size={14} /> {post.likes}
+                                        <button
+                                            onClick={() => handleReaction(post.id)}
+                                            className={`flex items-center gap-2 text-xs transition-colors ${aReagi ? 'text-emerald-400' : 'text-slate-500 hover:text-emerald-400'}`}
+                                        >
+                                            <ThumbsUp size={14} /> {post.reactionCount || 0}
                                         </button>
-                                        <button className="flex items-center gap-2 text-xs text-slate-500 hover:text-white transition-colors">
-                                            <MessageCircle size={14} /> {post.comments}
+                                        <button
+                                            onClick={() => setFilOuvert(filEstOuvert ? null : post.id)}
+                                            className={`flex items-center gap-2 text-xs transition-colors ${filEstOuvert ? 'text-white' : 'text-slate-500 hover:text-white'}`}
+                                        >
+                                            <MessageCircle size={14} /> {post.commentCount || 0}
                                         </button>
                                     </div>
+
+                                    {filEstOuvert && (
+                                        <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                                            {commentaires.map(c => (
+                                                <div key={c.id} className="flex gap-3">
+                                                    <div className={`w-6 h-6 shrink-0 rounded-full ${avatarTone(c.authorId)} flex items-center justify-center text-[10px] font-bold text-white`}>
+                                                        {(c.authorName || '?').charAt(0)}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[11px] font-bold text-slate-300">
+                                                            {c.authorName}
+                                                            <span className="ml-2 font-normal text-slate-600">{timeAgo(c.createdAt, language)}</span>
+                                                        </p>
+                                                        <p className="text-xs text-slate-400 leading-relaxed">{c.text}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <div className="flex gap-2 pt-1">
+                                                <input
+                                                    value={nouveauCommentaire}
+                                                    onChange={e => setNouveauCommentaire(e.target.value)}
+                                                    onKeyDown={e => e.key === 'Enter' && handleComment(post.id)}
+                                                    placeholder="Repondre"
+                                                    className="flex-1 bg-black/40 border border-white/10 rounded-full px-4 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50"
+                                                />
+                                                <button
+                                                    onClick={() => handleComment(post.id)}
+                                                    disabled={!nouveauCommentaire.trim()}
+                                                    className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-4 rounded-full text-xs font-bold transition-colors"
+                                                >
+                                                    <Send size={13} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                     
@@ -1182,15 +1278,28 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
                         </div>
                         
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#0a0a0a]/30">
-                            {chatMessages.map((msg, i) => (
-                                <div key={i} className={`flex flex-col ${msg.user === 'Moi' ? 'items-end' : 'items-start'}`}>
-                                    <div className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${msg.user === 'Moi' ? 'bg-emerald-600 text-white rounded-tr-sm' : 'bg-slate-800 text-slate-300 rounded-tl-sm'}`}>
-                                        <span className="block font-bold mb-1 text-[10px] opacity-70">{msg.user}</span>
+                            {!authState.isAuthenticated && (
+                                <p className="text-slate-500 text-xs text-center py-10 leading-relaxed px-4">
+                                    Le salon est reserve aux personnes connectees. Connectez-vous pour lire les echanges et y prendre part.
+                                </p>
+                            )}
+                            {authState.isAuthenticated && chatMessages.length === 0 && (
+                                <p className="text-slate-500 text-xs text-center py-10 leading-relaxed px-4">
+                                    Le salon est calme. Le premier message ouvre la conversation.
+                                </p>
+                            )}
+                            {chatMessages.map((msg) => {
+                                const estMoi = moi ? msg.authorId === moi.id : false;
+                                return (
+                                <div key={msg.id} className={`flex flex-col ${estMoi ? 'items-end' : 'items-start'}`}>
+                                    <div className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${estMoi ? 'bg-emerald-600 text-white rounded-tr-sm' : 'bg-slate-800 text-slate-300 rounded-tl-sm'}`}>
+                                        <span className="block font-bold mb-1 text-[10px] opacity-70">{estMoi ? 'Moi' : msg.authorName}</span>
                                         {msg.text}
                                     </div>
-                                    <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.time}</span>
+                                    <span className="text-[9px] text-slate-600 mt-1 px-1">{clockTime(msg.createdAt)}</span>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         <div className="p-3 bg-white/5 border-t border-white/5">
