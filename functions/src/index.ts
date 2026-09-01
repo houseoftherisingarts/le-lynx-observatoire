@@ -182,3 +182,6 @@ N'utilise pas de markdown gras ou italique. Juste le texte brut avec les sépara
 
 // Veille quotidienne (audit gouvernemental + nouvelles)
 export { dailyAudit, runAuditNow } from "./audit";
+
+// Comptes du Mur, tenus par le serveur
+export { murVoteEcrit, murCommentaireEcrit, ancienMurReaction } from "./mur";

@@ -149,6 +149,10 @@ export const creerCellule = async (
   return ref.id;
 };
 
+/** Compte des membres apres l'ajout d'un uid, sans double comptage. */
+const compteAvec = (membreUids: string[], uid: string): number =>
+  new Set([...(membreUids || []), uid]).size;
+
 /**
  * Entree directe dans une cellule ouverte. Ne touche que `membreUids` et
  * `nbMembres`, les deux seules cles qu'un membre a le droit de modifier.
@@ -156,11 +160,11 @@ export const creerCellule = async (
 export const rejoindreCellule = async (
   celluleId: string,
   uid: string,
-  nbActuel: number
+  membreUids: string[]
 ): Promise<void> => {
   await updateDoc(doc(db, 'cellules', celluleId), {
     membreUids: arrayUnion(uid),
-    nbMembres: Math.max(0, nbActuel) + 1,
+    nbMembres: compteAvec(membreUids, uid),
   });
 };
 

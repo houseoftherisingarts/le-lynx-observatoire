@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runAuditNow = exports.dailyAudit = exports.claudeSummary = exports.claudeChat = void 0;
+exports.ancienMurReaction = exports.murCommentaireEcrit = exports.murVoteEcrit = exports.runAuditNow = exports.dailyAudit = exports.claudeSummary = exports.claudeChat = void 0;
 const functions = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const sdk_1 = require("@anthropic-ai/sdk");
@@ -152,4 +152,9 @@ N'utilise pas de markdown gras ou italique. Juste le texte brut avec les sépara
 var audit_1 = require("./audit");
 Object.defineProperty(exports, "dailyAudit", { enumerable: true, get: function () { return audit_1.dailyAudit; } });
 Object.defineProperty(exports, "runAuditNow", { enumerable: true, get: function () { return audit_1.runAuditNow; } });
+// Comptes du Mur, tenus par le serveur
+var mur_1 = require("./mur");
+Object.defineProperty(exports, "murVoteEcrit", { enumerable: true, get: function () { return mur_1.murVoteEcrit; } });
+Object.defineProperty(exports, "murCommentaireEcrit", { enumerable: true, get: function () { return mur_1.murCommentaireEcrit; } });
+Object.defineProperty(exports, "ancienMurReaction", { enumerable: true, get: function () { return mur_1.ancienMurReaction; } });
 //# sourceMappingURL=index.js.map
