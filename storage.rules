@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function imageSous(mo) {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size < mo * 1024 * 1024;
+    }
+
+    // Photo de profil : chacun ecrit la sienne, tout le monde la voit.
+    match /membres/{userId}/{fichier} {
+      allow read: if true;
+      allow write: if signedIn() && request.auth.uid == userId && imageSous(5);
+    }
+
+    // Photos du mur et de la galerie, deposees par les membres.
+    match /photos/{userId}/{fichier} {
+      allow read: if true;
+      allow write: if signedIn() && request.auth.uid == userId && imageSous(10);
+    }
+
+    match /mur/{userId}/{fichier} {
+      allow read: if true;
+      allow write: if signedIn() && request.auth.uid == userId && imageSous(10);
+    }
+
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

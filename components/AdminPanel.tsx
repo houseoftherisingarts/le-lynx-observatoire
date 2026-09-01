@@ -153,7 +153,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ submissions = [], language }) =
             anishnabeg: 'https://www.kitigan.com',
             lynx: 'mailto:info@alliancepetitenation.org?subject=Don%20plateforme%20Le%20Lynx',
         };
-        const sorted = Object.entries(weights).sort((a, b) => b[1] - a[1]);
+        const sorted = Object.entries(weights as Record<string, number>).sort((a, b) => b[1] - a[1]);
         const [topCause] = sorted;
         window.open(urls[topCause[0]], '_blank');
         setSuccessMessage(true);

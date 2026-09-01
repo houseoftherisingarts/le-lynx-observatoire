@@ -3,6 +3,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, ThumbsUp, Shield, Upload, Calendar, Send, User, ChevronRight, X, MapPin, FileText, Image, ExternalLink, Download, Hand, Users, Megaphone, BookOpen, Share2, MousePointerClick, Clock, Trash2, CheckCircle, CalendarPlus, Facebook, Twitter, Link, Star, Save, Loader, Phone, Mail, Zap, Lock, Instagram, Copy, Check, RefreshCw, Smartphone, List } from 'lucide-react';
 import { AuthState, User as UserType, Language } from '../types';
+import {
+    FeedPost,
+    FeedComment,
+    MobAction,
+    ChatMessage as LiveChatMessage,
+    subscribeToPosts,
+    subscribeToComments,
+    subscribeToChat,
+    subscribeToActions,
+    subscribeToMyReactions,
+    createPost,
+    deletePost,
+    addComment,
+    toggleReaction,
+    sendChatMessage,
+    createAction,
+    joinAction,
+    deleteAction,
+    timeAgo,
+    clockTime,
+    avatarTone,
+} from '../services/socialService';
 
 // Add type for html2canvas
 declare global {
@@ -21,27 +43,8 @@ interface CommunityProps {
     isAdmin?: boolean;
 }
 
-interface Post {
-    id: number;
-    user: string;
-    text: string;
-    time: string;
-    likes: number;
-    comments: number;
-    avatarColor: string;
-}
-
-interface Action {
-    id: number;
-    type: string;
-    title: string;
-    dateDisplay: string; // Friendly string
-    timestamp: number; // For countdown
-    location: string;
-    participants: number;
-    description?: string;
-    joinedUserIds: string[]; // To track who joined
-}
+type Post = FeedPost;
+type Action = MobAction;
 
 const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, activeTab, setActiveTab, language, isAdmin = false }) => {
     const [chatInput, setChatInput] = useState('');

@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -214,15 +215,20 @@ export const toggleReaction = async (postId: string, uid: string): Promise<boole
   return true;
 };
 
+/** Les publications que cette personne a deja aimees. */
 export const subscribeToMyReactions = (
   uid: string,
   onChange: (postIds: Set<string>) => void
 ) =>
   onSnapshot(
-    query(collection(db, 'posts')),
-    async () => {
-      // Les reactions vivent en sous-collection : on interroge par groupe.
-      onChange(new Set());
+    query(collectionGroup(db, 'reactions'), where('uid', '==', uid)),
+    (snap) => {
+      const ids = new Set<string>();
+      snap.docs.forEach((d) => {
+        const postId = d.ref.parent.parent?.id;
+        if (postId) ids.add(postId);
+      });
+      onChange(ids);
     },
     () => onChange(new Set())
   );
