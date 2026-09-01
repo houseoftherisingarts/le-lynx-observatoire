@@ -287,7 +287,7 @@ const Mur: React.FC<MurProps> = ({ language, fil = FIL_PAR_DEFAUT, isAdmin = fal
 
       {/* Liste */}
       {erreurMur ? (
-        <div className="glass-card rounded-3xl border border-white/5 p-10 text-center">
+        <div className="glass-card rounded-3xl border border-white/5 p-6 sm:p-10 text-center">
           <AlertTriangle className="w-8 h-8 mx-auto text-amber-500" />
           <h3 className="mt-4 font-serif text-xl text-white">{t.erreurTitre}</h3>
           <p className="mt-2 text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
@@ -299,7 +299,7 @@ const Mur: React.FC<MurProps> = ({ language, fil = FIL_PAR_DEFAUT, isAdmin = fal
           <Loader2 className="w-6 h-6 text-slate-600 animate-spin" />
         </div>
       ) : billets.length === 0 ? (
-        <div className="glass-card rounded-3xl border border-white/5 p-10 text-center">
+        <div className="glass-card rounded-3xl border border-white/5 p-6 sm:p-10 text-center">
           <Megaphone className="w-8 h-8 mx-auto text-slate-600" />
           <h3 className="mt-4 font-serif text-xl text-white">{t.videTitre}</h3>
           <p className="mt-2 text-sm text-slate-400 max-w-md mx-auto leading-relaxed">

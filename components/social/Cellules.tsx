@@ -333,6 +333,13 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                 </div>
             )}
 
+            {erreurAction && (
+                <div className="glass-card rounded-2xl border border-red-500/20 p-4 mb-8 flex items-start gap-3">
+                    <ShieldAlert size={18} className="text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-slate-300">{t.actionRatee}</p>
+                </div>
+            )}
+
             {erreur && (
                 <div className="glass-card rounded-2xl border border-red-500/20 p-8 text-center">
                     <ShieldAlert size={28} className="text-red-500 mx-auto mb-4" />

@@ -39,6 +39,7 @@ const T = {
     aucunCommentaire: 'Personne n’a encore répondu. La première réponse ouvre la discussion.',
     connexionRequise: 'Connectez-vous pour répondre et pour voter.',
     erreur: 'La discussion ne se charge pas pour le moment. Réessayez dans un instant.',
+    erreurGeste: 'Ce geste n’a pas été enregistré. Réessayez dans un instant.',
   },
   en: {
     officiel: 'Official',
@@ -54,6 +55,7 @@ const T = {
     aucunCommentaire: 'Nobody has replied yet. The first reply opens the discussion.',
     connexionRequise: 'Sign in to reply and to vote.',
     erreur: 'The discussion is not loading right now. Try again in a moment.',
+    erreurGeste: 'That action was not saved. Try again in a moment.',
   },
 };
 
@@ -99,6 +101,7 @@ const BilletMur: React.FC<BilletMurProps> = ({
   const [reponse, setReponse] = useState('');
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
   const [copie, setCopie] = useState(false);
+  const [erreurGeste, setErreurGeste] = useState(false);
   const minuterie = useRef<number | null>(null);
 
   useEffect(() => {
@@ -120,7 +123,30 @@ const BilletMur: React.FC<BilletMurProps> = ({
 
   const changerVote = async (valeur: 1 | -1) => {
     if (!moiUid) return;
-    await voter(billet.id, moiUid, monNom, monVote === valeur ? 0 : valeur);
+    setErreurGeste(false);
+    try {
+      await voter(billet.id, moiUid, monNom, monVote === valeur ? 0 : valeur);
+    } catch {
+      setErreurGeste(true);
+    }
+  };
+
+  const epinglerBillet = async () => {
+    setErreurGeste(false);
+    try {
+      await epingler(billet.id, !billet.epingle);
+    } catch {
+      setErreurGeste(true);
+    }
+  };
+
+  const supprimer = async () => {
+    setErreurGeste(false);
+    try {
+      await supprimerBillet(billet.id);
+    } catch {
+      setErreurGeste(true);
+    }
   };
 
   const partager = async () => {
@@ -147,9 +173,12 @@ const BilletMur: React.FC<BilletMurProps> = ({
     e.preventDefault();
     if (!moiUid || !reponse.trim() || envoiEnCours) return;
     setEnvoiEnCours(true);
+    setErreurGeste(false);
     try {
       await commenter(billet.id, { uid: moiUid, nom: monNom, avatarUrl: monAvatar }, reponse);
       setReponse('');
+    } catch {
+      setErreurGeste(true);
     } finally {
       setEnvoiEnCours(false);
     }
@@ -248,7 +277,7 @@ const BilletMur: React.FC<BilletMurProps> = ({
             {isAdmin && (
               <button
                 type="button"
-                onClick={() => epingler(billet.id, !billet.epingle)}
+                onClick={epinglerBillet}
                 className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium hover:bg-white/5 transition-all ${
                   billet.epingle ? 'text-emerald-400' : 'hover:text-slate-200'
                 }`}
@@ -262,7 +291,7 @@ const BilletMur: React.FC<BilletMurProps> = ({
             {peutSupprimer && (
               <button
                 type="button"
-                onClick={() => supprimerBillet(billet.id)}
+                onClick={supprimer}
                 className="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium hover:bg-red-500/10 hover:text-red-400 transition-all"
               >
                 <Trash2 className="w-4 h-4" />
@@ -270,6 +299,8 @@ const BilletMur: React.FC<BilletMurProps> = ({
               </button>
             )}
           </footer>
+
+          {erreurGeste && <p className="mt-3 text-xs text-amber-400">{t.erreurGeste}</p>}
 
           {filOuvert && (
             <section className="mt-4 pt-4 border-t border-white/5 space-y-4 animate-fade-in">
@@ -298,7 +329,7 @@ const BilletMur: React.FC<BilletMurProps> = ({
                     value={reponse}
                     onChange={(e) => setReponse(e.target.value.slice(0, LONGUEUR_MAX_COMMENTAIRE))}
                     placeholder={t.ecrire}
-                    className="flex-1 bg-black/40 border border-white/5 focus:border-emerald-500/40 rounded-full px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all"
+                    className="flex-1 min-w-0 bg-black/40 border border-white/5 focus:border-emerald-500/40 rounded-full px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none transition-all"
                   />
                   <button
                     type="submit"

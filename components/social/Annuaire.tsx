@@ -28,6 +28,11 @@ const T = {
     erreurTitre: 'Annuaire indisponible',
     erreurTexte:
       'La lecture des fiches a échoué. Reconnectez-vous à votre compte et l’annuaire se remplira de nouveau.',
+    fermeTitre: 'Annuaire réservé aux membres',
+    fermeTexte:
+      'Les fiches du réseau s’ouvrent une fois que vous êtes connecté à votre compte. Connectez-vous et l’annuaire apparaît.',
+    ariaRecherche: 'Chercher une personne par son nom',
+    ariaVille: 'Filtrer par municipalité',
     resultat: 'affichée',
     resultats: 'affichées',
   },
@@ -47,6 +52,11 @@ const T = {
       'No profile has been opened yet. Yours will appear as soon as you fill in your name and municipality.',
     erreurTitre: 'Directory unavailable',
     erreurTexte: 'Reading the profiles failed. Sign in again and the directory will fill up once more.',
+    fermeTitre: 'Directory reserved for members',
+    fermeTexte:
+      'The network profiles open once you are signed in to your account. Sign in and the directory appears.',
+    ariaRecherche: 'Search someone by name',
+    ariaVille: 'Filter by municipality',
     resultat: 'shown',
     resultats: 'shown',
   },
@@ -66,7 +76,7 @@ export interface AnnuaireProps {
 
 const Annuaire: React.FC<AnnuaireProps> = ({ language, onOuvrirFiche, onEcrire, onAllier }) => {
   const t = textes(language);
-  const { profile } = useAuth();
+  const { profile, loading: authEnCours } = useAuth();
   const [fiches, setFiches] = useState<MembreFiche[]>([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -78,9 +88,19 @@ const Annuaire: React.FC<AnnuaireProps> = ({ language, onOuvrirFiche, onEcrire, 
     assurerFicheMembre(profile).catch(() => {
       /* La fiche se créera au prochain passage. */
     });
-  }, [profile]);
+    // Le uid seul : l'objet du contexte change d'identité à chaque rendu.
+  }, [profile?.uid]);
 
+  // La règle `membres` n'autorise la lecture qu'aux comptes connectés. Sans
+  // compte, on n'ouvre aucun écouteur : la requête serait refusée en entier.
   useEffect(() => {
+    if (authEnCours) return;
+    if (!profile) {
+      setFiches([]);
+      setErreur(null);
+      setChargement(false);
+      return;
+    }
     setChargement(true);
     const stop = suivreAnnuaire(
       (recues) => {
@@ -94,7 +114,9 @@ const Annuaire: React.FC<AnnuaireProps> = ({ language, onOuvrirFiche, onEcrire, 
       },
     );
     return stop;
-  }, []);
+  }, [authEnCours, profile?.uid]);
+
+  const deconnecte = !authEnCours && !profile;
 
   const visibles = useMemo(() => {
     const terme = sansAccent(recherche.trim());
@@ -109,8 +131,8 @@ const Annuaire: React.FC<AnnuaireProps> = ({ language, onOuvrirFiche, onEcrire, 
 
   return (
     <section className="animate-fade-in">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
+      <header className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between">
+        <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">{t.titre}</p>
           <h2 className="mt-2 font-serif text-3xl md:text-4xl text-white leading-tight">
             {fiches.length} {fiches.length === 1 ? t.compteurUn : t.compteurPlusieurs}
@@ -122,13 +144,14 @@ const Annuaire: React.FC<AnnuaireProps> = ({ language, onOuvrirFiche, onEcrire, 
           )}
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               value={recherche}
               onChange={(event) => setRecherche(event.target.value)}
               placeholder={t.recherche}
+              aria-label={t.ariaRecherche}
               className="w-full sm:w-64 rounded-full bg-black/40 border border-white/10 py-2 pl-9 pr-3 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 transition-all"
             />
           </div>
@@ -138,6 +161,7 @@ const Annuaire: React.FC<AnnuaireProps> = ({ language, onOuvrirFiche, onEcrire, 
             <select
               value={ville}
               onChange={(event) => setVille(event.target.value)}
+              aria-label={t.ariaVille}
               className="w-full sm:w-56 appearance-none rounded-full bg-black/40 border border-white/10 py-2 pl-9 pr-8 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/60 transition-all"
             >
               <option value="">{t.toutes}</option>
@@ -167,22 +191,30 @@ const Annuaire: React.FC<AnnuaireProps> = ({ language, onOuvrirFiche, onEcrire, 
 
       <div className="mt-8">
         {chargement && (
-          <div className="glass-panel rounded-3xl border border-white/5 p-12 flex items-center justify-center gap-3 text-slate-500">
+          <div className="glass-panel rounded-3xl border border-white/5 p-8 sm:p-12 flex items-center justify-center gap-3 text-slate-500">
             <Loader size={18} className="animate-spin" />
             <span className="text-sm">{t.chargement}</span>
           </div>
         )}
 
-        {!chargement && erreur && (
-          <div className="glass-panel rounded-3xl border border-white/5 p-12 text-center">
+        {!chargement && deconnecte && (
+          <div className="glass-panel rounded-3xl border border-white/5 p-8 sm:p-12 text-center">
+            <Users size={32} className="mx-auto text-slate-600" />
+            <h3 className="mt-4 font-serif text-xl text-white">{t.fermeTitre}</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">{t.fermeTexte}</p>
+          </div>
+        )}
+
+        {!chargement && !deconnecte && erreur && (
+          <div className="glass-panel rounded-3xl border border-white/5 p-8 sm:p-12 text-center">
             <WifiOff size={32} className="mx-auto text-slate-600" />
             <h3 className="mt-4 font-serif text-xl text-white">{t.erreurTitre}</h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">{t.erreurTexte}</p>
           </div>
         )}
 
-        {!chargement && !erreur && visibles.length === 0 && (
-          <div className="glass-panel rounded-3xl border border-white/5 p-12 text-center">
+        {!chargement && !deconnecte && !erreur && visibles.length === 0 && (
+          <div className="glass-panel rounded-3xl border border-white/5 p-8 sm:p-12 text-center">
             <Users size={32} className="mx-auto text-slate-600" />
             <h3 className="mt-4 font-serif text-xl text-white">
               {fiches.length === 0 ? t.neufTitre : t.videTitre}
@@ -193,7 +225,7 @@ const Annuaire: React.FC<AnnuaireProps> = ({ language, onOuvrirFiche, onEcrire, 
           </div>
         )}
 
-        {!chargement && !erreur && visibles.length > 0 && (
+        {!chargement && !deconnecte && !erreur && visibles.length > 0 && (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {visibles.map((fiche) => (
               <FicheMembre
