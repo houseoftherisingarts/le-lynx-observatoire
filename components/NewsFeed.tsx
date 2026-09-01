@@ -1,268 +1,271 @@
-
-import React, { useEffect, useState } from 'react';
-import { getNewsWithPerplexity } from '../services/perplexityService';
-import { NewsItem, Language } from '../types';
-import { RefreshCw, ExternalLink, Globe, Radio, History, Info, Facebook } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Language } from '../types';
+import {
+  AuditNewsItem,
+  AuditStatus,
+  NewsCategory,
+  categoryLabel,
+  categoryTone,
+  relativeTime,
+  subscribeToAuditStatus,
+  subscribeToNews,
+} from '../services/newsService';
+import {
+  ExternalLink,
+  Globe,
+  Radio,
+  Info,
+  Landmark,
+  AlertTriangle,
+  Inbox,
+} from 'lucide-react';
 
 interface NewsFeedProps {
-    language: Language;
+  language: Language;
 }
 
+const ORDER: NewsCategory[] = [
+  'gouvernement',
+  'municipal',
+  'miniere',
+  'mobilisation',
+  'autochtone',
+  'juridique',
+  'media',
+];
+
 export const NewsFeed: React.FC<NewsFeedProps> = ({ language }) => {
-  const [news, setNews] = useState<NewsItem[]>([]);
+  const [news, setNews] = useState<AuditNewsItem[]>([]);
+  const [status, setStatus] = useState<AuditStatus | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const translations = {
-      fr: {
-          title: "Veille Médiatique",
-          subtitle: "Agrégateur d'articles et revue de presse automatisée.",
-          refresh: "Actualiser",
-          identifiedNews: "Actualités Identifiées",
-          infoTooltip: "Le système scanne les grands titres et les groupes Facebook pour les mots-clés : Lomiko, La Loutre, Claims miniers.",
-          fbGroup: "Groupe de Soutien Facebook",
-          fbDesc: "Source surveillée pour événements et idées",
-          active: "Actif",
-          access: "Accéder à l'article",
-          archives: "Archives Presse (2018-2024)",
-          readArchive: "Lire l'archive"
-      },
-      en: {
-          title: "Media Monitoring",
-          subtitle: "Article aggregator and automated press review.",
-          refresh: "Refresh",
-          identifiedNews: "Identified News",
-          infoTooltip: "The system scans headlines and Facebook groups for keywords: Lomiko, La Loutre, Mining claims.",
-          fbGroup: "Facebook Support Group",
-          fbDesc: "Monitored source for events and ideas",
-          active: "Active",
-          access: "Read article",
-          archives: "Press Archives (2018-2024)",
-          readArchive: "Read Archive"
-      },
-      ani: {
-          title: "Babaamajimowin", // News/Reporting
-          subtitle: "Article aggregator and automated press review.",
-          refresh: "Refresh",
-          identifiedNews: "Identified News",
-          infoTooltip: "The system scans headlines and Facebook groups for keywords: Lomiko, La Loutre, Mining claims.",
-          fbGroup: "Facebook Support Group",
-          fbDesc: "Monitored source for events and ideas",
-          active: "Active",
-          access: "Read article",
-          archives: "Gaa-bi-izhiwebag (Archives)",
-          readArchive: "Read Archive"
-      }
-  };
-
-  const t = translations[language];
-
-  // Static Historical Data for accurate timeline back to 2018
-  const historicalNews: NewsItem[] = [
-      {
-          id: 'hist-2024-1',
-          title: "Lomiko Metals annonce une mise à jour de ses ressources minérales",
-          source: "lomiko.com",
-          date: "Avril 2024",
-          snippet: "La compagnie publie une estimation révisée pour le projet La Loutre, augmentant les volumes projetés.",
-          url: "https://lomiko.com/fr/nouvelles/"
-      },
-      {
-          id: 'hist-2024-2',
-          title: "Mobilisation citoyenne : L'Alliance Petite-Nation organise une grande marche",
-          source: "Le Droit",
-          date: "Mars 2024",
-          snippet: "Plus de 500 citoyens marchent pour demander l'arrêt des travaux d'exploration.",
-          url: "https://www.ledroit.com"
-      },
-      {
-          id: 'hist-2023-1',
-          title: "Kitigan Zibi réitère son opposition formelle",
-          source: "Radio-Canada",
-          date: "Novembre 2023",
-          snippet: "Le chef Dylan Whiteduck déclare qu'aucune consultation significative n'a eu lieu.",
-          url: "https://ici.radio-canada.ca"
-      },
-      {
-          id: 'hist-2022-1',
-          title: "Dépôt des résultats préliminaires du BAPE",
-          source: "BAPE",
-          date: "Juin 2022",
-          snippet: "Le rapport soulève des inquiétudes majeures concernant l'impact sur les milieux humides.",
-          url: "https://www.bape.gouv.qc.ca"
-      },
-      {
-          id: 'hist-2021-1',
-          title: "Lomiko acquiert 100% du projet La Loutre",
-          source: "Yahoo Finance",
-          date: "Février 2021",
-          snippet: "Transaction majeure consolidant la position de la minière dans la région.",
-          url: "https://finance.yahoo.com"
-      },
-      {
-          id: 'hist-2020-1',
-          title: "Premières inquiétudes des riverains du Lac des Plages",
-          source: "Info Petite Nation",
-          date: "Août 2020",
-          snippet: "Des résidents signalent des activités de forage proches des résidences.",
-          url: "https://infopetitenation.ca"
-      },
-       {
-          id: 'hist-2018-1',
-          title: "Début de la phase d'exploration intensive",
-          source: "MERN",
-          date: "Mai 2018",
-          snippet: "Approbation des permis de forage initiaux pour le secteur La Loutre.",
-          url: "https://mern.gouv.qc.ca"
-      }
-  ];
-
-  const fetchNews = async () => {
-    setLoading(true);
-    const aiNews = await getNewsWithPerplexity();
-    setNews(aiNews);
-    setLoading(false);
-  };
+  const [error, setError] = useState(false);
+  const [filter, setFilter] = useState<NewsCategory | 'tout'>('tout');
 
   useEffect(() => {
-    fetchNews();
+    const stopNews = subscribeToNews(
+      (items) => {
+        setNews(items);
+        setLoading(false);
+        setError(false);
+      },
+      () => {
+        setLoading(false);
+        setError(true);
+      }
+    );
+    const stopStatus = subscribeToAuditStatus(setStatus);
+    return () => {
+      stopNews();
+      stopStatus();
+    };
   }, []);
 
-  const formatSource = (urlHost: string) => {
-      if (urlHost.includes('youtube')) return 'Radio-Canada / Média';
-      if (urlHost.includes('facebook')) return 'Communauté';
-      return urlHost;
-  };
+  const t = useMemo(() => {
+    const fr = {
+      title: 'Veille et signaux',
+      subtitle:
+        "Chaque matin, le systeme relit les registres gouvernementaux, les conseils municipaux, les communiques de la miniere et la presse regionale, puis depose ici ce qui a bouge.",
+      all: 'Tout',
+      gov: 'Sources gouvernementales',
+      lastRun: 'Derniere veille',
+      never: "La premiere veille n'a pas encore tourne.",
+      emptyTitle: 'Rien de nouveau pour le moment',
+      emptyBody:
+        "La prochaine passe part demain matin a 6 h 05. Ce qui sera trouve dans les registres et dans la presse apparaitra ici sans que personne ait a l'ajouter a la main.",
+      errorTitle: 'La veille est momentanement injoignable',
+      errorBody: 'Le flux se rebranche tout seul des que la connexion revient.',
+      read: "Lire a la source",
+      count: (n: number) => `${n} element${n > 1 ? 's' : ''} suivi${n > 1 ? 's' : ''}`,
+      tooltip:
+        'GESTIM, Gazette officielle, ministere des Ressources naturelles, BAPE, Assemblee nationale, MRC de Papineau et conseils municipaux, Lomiko Metals, Le Droit, Radio-Canada, Info Petite-Nation.',
+      high: 'Prioritaire',
+    };
+    const en = {
+      ...fr,
+      title: 'Monitoring and signals',
+      subtitle:
+        'Every morning the system re-reads the government registries, the municipal councils, the mining company releases and the regional press, then posts here whatever moved.',
+      all: 'All',
+      gov: 'Government sources',
+      lastRun: 'Last sweep',
+      never: 'The first sweep has not run yet.',
+      emptyTitle: 'Nothing new right now',
+      emptyBody:
+        'The next sweep runs tomorrow at 6:05. Whatever turns up in the registries and the press lands here on its own.',
+      errorTitle: 'The monitoring feed is unreachable',
+      errorBody: 'It reconnects by itself as soon as the connection returns.',
+      read: 'Read at the source',
+      count: (n: number) => `${n} item${n > 1 ? 's' : ''} tracked`,
+      high: 'Priority',
+    };
+    return language === 'en' ? en : fr;
+  }, [language]);
+
+  const available = useMemo(() => {
+    const present = new Set(news.map((n) => n.category));
+    return ORDER.filter((c) => present.has(c));
+  }, [news]);
+
+  const shown = filter === 'tout' ? news : news.filter((n) => n.category === filter);
+  const govCount = news.filter((n) => n.isGovernment).length;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in h-full flex flex-col pb-20">
-      <div className="flex items-center justify-between shrink-0">
-        <div>
-          <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-             <Radio className="text-emerald-500 animate-pulse" />
-             {t.title}
-          </h2>
-          <p className="text-slate-400 mt-2 font-light">{t.subtitle}</p>
-        </div>
-        <button 
-          onClick={fetchNews}
-          disabled={loading}
-          className="flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-slate-300 hover:bg-white/10 hover:text-white transition-all shadow-lg backdrop-blur-sm"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          <span className="text-xs font-bold uppercase tracking-wide">{t.refresh}</span>
-        </button>
-      </div>
+    <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-20">
+      <header className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+              <Radio className="text-emerald-500 animate-pulse" />
+              {t.title}
+            </h2>
+            <p className="text-slate-400 mt-3 font-light leading-relaxed">{t.subtitle}</p>
+          </div>
 
-      <div className="grid gap-4 overflow-y-auto custom-scrollbar pr-2 pb-10">
-        {/* Recent AI Detected News */}
-        <div>
-            <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    {t.identifiedNews}
-                </h3>
-                <div className="group relative">
-                    <Info size={14} className="text-slate-600 cursor-help" />
-                    <div className="absolute left-full top-0 ml-2 w-48 p-2 bg-slate-900 border border-white/10 text-[10px] text-slate-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                        {t.infoTooltip}
-                    </div>
-                </div>
+          <div className="glass-card rounded-2xl px-5 py-4 border border-white/5 min-w-[13rem]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+              {t.lastRun}
+            </p>
+            {status ? (
+              <>
+                <p className="text-emerald-400 font-mono text-sm mt-1">
+                  {relativeTime(status.lastRunAt, language)}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">{t.count(news.length)}</p>
+              </>
+            ) : (
+              <p className="text-slate-500 text-xs mt-1 leading-snug">{t.never}</p>
+            )}
+            <div className="mt-3 flex items-center gap-2 text-[11px] text-amber-400/80">
+              <Landmark size={12} />
+              <span>
+                {govCount} · {t.gov}
+              </span>
             </div>
-
-            {/* Added Facebook Group as a pinned Monitored Source */}
-            <div className="mb-4">
-                <div className="glass-card p-4 rounded-2xl bg-blue-900/10 border border-blue-500/20 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white">
-                            <Facebook size={20} />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-bold text-white">{t.fbGroup}</h4>
-                            <p className="text-xs text-blue-200/60">{t.fbDesc}</p>
-                        </div>
-                    </div>
-                    <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase rounded-full border border-blue-500/20 animate-pulse">
-                        {t.active}
-                    </span>
-                </div>
-            </div>
-            
-            <div className="space-y-4">
-                {loading ? (
-                    [1, 2].map(i => (
-                        <div key={i} className="glass-card p-6 rounded-3xl animate-pulse">
-                            <div className="h-6 bg-white/5 rounded w-3/4 mb-3"></div>
-                            <div className="h-4 bg-white/10 rounded w-1/4 mb-4"></div>
-                            <div className="h-4 bg-white/5 rounded w-full mb-2"></div>
-                        </div>
-                    ))
-                ) : (
-                    news.map((item) => (
-                        <div key={item.id} className="glass-card p-6 rounded-3xl hover:bg-white/5 transition-all group border-l-4 border-l-transparent hover:border-l-emerald-500">
-                            <h3 className="text-xl font-bold text-slate-200 mb-3 group-hover:text-emerald-400 transition-colors">
-                                {item.title}
-                            </h3>
-                             <div className="flex items-center gap-3 mb-4">
-                                <span className="px-3 py-1 bg-cyan-950/50 text-cyan-300 text-[10px] font-bold uppercase tracking-wider rounded-full border border-cyan-800/50 flex items-center gap-2">
-                                    <Globe size={10} />
-                                    {formatSource(item.source)}
-                                </span>
-                                <span className="text-xs text-slate-500 font-mono">{item.date}</span>
-                            </div>
-                            <p className="text-slate-400 leading-relaxed mb-4 text-sm font-light">
-                                {item.snippet}
-                            </p>
-                            {item.url && (
-                                <a 
-                                    href={item.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-500 hover:text-emerald-400 transition-colors"
-                                >
-                                    {t.access} <ExternalLink size={12} />
-                                </a>
-                            )}
-                        </div>
-                    ))
-                )}
-            </div>
+          </div>
         </div>
 
-        {/* Historical Timeline */}
-        <div className="pt-8 border-t border-white/5">
-             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
-                <History size={14} />
-                {t.archives}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setFilter('tout')}
+            className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${
+              filter === 'tout'
+                ? 'bg-white/10 text-white border-white/20'
+                : 'bg-transparent text-slate-500 border-white/5 hover:text-slate-300'
+            }`}
+          >
+            {t.all}
+          </button>
+          {available.map((c) => (
+            <button
+              key={c}
+              onClick={() => setFilter(c)}
+              className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${
+                filter === c
+                  ? categoryTone(c)
+                  : 'bg-transparent text-slate-500 border-white/5 hover:text-slate-300'
+              }`}
+            >
+              {categoryLabel(c, language)}
+            </button>
+          ))}
+          <div className="group relative ml-1">
+            <Info size={14} className="text-slate-600 cursor-help" />
+            <div className="absolute left-full top-0 ml-2 w-64 p-3 bg-slate-900 border border-white/10 text-[10px] text-slate-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 leading-relaxed">
+              {t.tooltip}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {loading && (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="glass-card p-6 rounded-3xl animate-pulse">
+              <div className="h-6 bg-white/5 rounded w-3/4 mb-3" />
+              <div className="h-4 bg-white/10 rounded w-1/4 mb-4" />
+              <div className="h-4 bg-white/5 rounded w-full mb-2" />
+              <div className="h-4 bg-white/5 rounded w-5/6" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="glass-card p-8 rounded-3xl border border-red-900/30 text-center">
+          <AlertTriangle className="mx-auto text-red-400 mb-3" size={24} />
+          <h3 className="text-white font-bold mb-2">{t.errorTitle}</h3>
+          <p className="text-slate-400 text-sm font-light">{t.errorBody}</p>
+        </div>
+      )}
+
+      {!loading && !error && shown.length === 0 && (
+        <div className="glass-card p-10 rounded-3xl text-center border border-white/5">
+          <Inbox className="mx-auto text-slate-600 mb-4" size={28} />
+          <h3 className="text-white font-bold mb-2">{t.emptyTitle}</h3>
+          <p className="text-slate-400 text-sm font-light max-w-md mx-auto leading-relaxed">
+            {t.emptyBody}
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {shown.map((item) => (
+          <article
+            key={item.id}
+            className={`glass-card p-6 rounded-3xl hover:bg-white/5 transition-all group border-l-4 ${
+              item.importance === 'haute'
+                ? 'border-l-emerald-500'
+                : 'border-l-transparent hover:border-l-emerald-500/50'
+            }`}
+          >
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span
+                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${categoryTone(
+                  item.category
+                )}`}
+              >
+                {categoryLabel(item.category, language)}
+              </span>
+              {item.isGovernment && (
+                <span className="px-3 py-1 bg-amber-950/40 text-amber-300 text-[10px] font-bold uppercase tracking-wider rounded-full border border-amber-800/50 flex items-center gap-1.5">
+                  <Landmark size={10} />
+                  {t.gov}
+                </span>
+              )}
+              {item.importance === 'haute' && (
+                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-300 text-[10px] font-bold uppercase tracking-wider rounded-full border border-emerald-500/30">
+                  {t.high}
+                </span>
+              )}
+              <span className="text-xs text-slate-500 font-mono ml-auto">{item.date}</span>
+            </div>
+
+            <h3 className="text-xl font-bold text-slate-200 mb-3 group-hover:text-emerald-400 transition-colors leading-snug">
+              {item.title}
             </h3>
-            <div className="space-y-4 relative">
-                 <div className="absolute left-4 top-0 bottom-0 w-px bg-white/5"></div>
-                 {historicalNews.map((item) => (
-                    <div key={item.id} className="relative pl-10">
-                        <div className="absolute left-[13px] top-6 w-1.5 h-1.5 rounded-full bg-slate-700 ring-4 ring-[#02040a]"></div>
-                        <div className="glass-card p-5 rounded-2xl hover:bg-white/5 transition-all group">
-                             <h3 className="text-lg font-bold text-slate-300 mb-2 group-hover:text-emerald-400 transition-colors">
-                                {item.title}
-                            </h3>
-                            <div className="flex items-center gap-3 mb-3">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">{item.date}</span>
-                                <span className="text-[10px] text-slate-600 px-2 py-0.5 rounded bg-white/5">{item.source}</span>
-                            </div>
-                             <p className="text-slate-400 text-sm font-light mb-3">
-                                {item.snippet}
-                            </p>
-                             <a 
-                                href={item.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:text-white transition-colors"
-                            >
-                                {t.readArchive} <ExternalLink size={10} className="inline ml-1" />
-                            </a>
-                        </div>
-                    </div>
-                ))}
+
+            <p className="text-slate-400 leading-relaxed mb-4 text-sm font-light">
+              {item.summary}
+            </p>
+
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] text-slate-500 flex items-center gap-1.5 font-mono">
+                <Globe size={10} />
+                {item.source}
+              </span>
+              {item.url && (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-500 hover:text-emerald-400 transition-colors"
+                >
+                  {t.read} <ExternalLink size={12} />
+                </a>
+              )}
             </div>
-        </div>
+          </article>
+        ))}
       </div>
     </div>
   );
