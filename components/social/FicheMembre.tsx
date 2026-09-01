@@ -46,6 +46,10 @@ const T = {
     chargement: 'Chargement de la fiche',
     choisir: 'Choisir une municipalité',
     sansMunicipalite: 'Municipalité non précisée',
+    sauvegardeKo: 'L’enregistrement n’a pas abouti. Reprenez dans un moment.',
+    photoType: 'Choisissez un fichier image.',
+    photoTaille: 'L’image dépasse 5 Mo. Choisissez une version plus légère.',
+    photoKo: 'Le téléversement n’a pas abouti. Reprenez dans un moment.',
   },
   en: {
     verifie: 'Verified',
@@ -69,10 +73,16 @@ const T = {
     chargement: 'Loading profile',
     choisir: 'Choose a municipality',
     sansMunicipalite: 'Municipality not given',
+    sauvegardeKo: 'The save did not go through. Try again in a moment.',
+    photoType: 'Pick an image file.',
+    photoTaille: 'The image is over 5 MB. Pick a lighter version.',
+    photoKo: 'The upload did not go through. Try again in a moment.',
   },
 };
 
 const textes = (language: Language) => (language === 'fr' ? T.fr : T.en);
+
+const AVATAR_MAX_OCTETS = 5 * 1024 * 1024;
 
 export interface FicheMembreProps {
   uid: string;
@@ -145,10 +155,11 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
   onAllier,
 }) => {
   const t = textes(language);
-  const { profile } = useAuth();
+  const { profile, loading: authEnCours } = useAuth();
   const [ficheLue, setFicheLue] = useState<MembreFiche | null>(null);
   const [chargement, setChargement] = useState(ficheParent === undefined);
-  const [erreur, setErreur] = useState<string | null>(null);
+  const [erreur, setErreur] = useState(false);
+  const [avis, setAvis] = useState<string | null>(null);
   const [edition, setEdition] = useState(false);
   const [travail, setTravail] = useState(false);
   const fichierRef = useRef<HTMLInputElement | null>(null);
@@ -161,21 +172,30 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
 
   useEffect(() => {
     if (ficheParent !== undefined) return;
+    if (authEnCours) return;
+    // Lecture réservée aux comptes connectés : sans compte, l'écouteur serait
+    // refusé, alors on affiche directement l'état de lecture impossible.
+    if (!profile) {
+      setFicheLue(null);
+      setErreur(true);
+      setChargement(false);
+      return;
+    }
     setChargement(true);
     const stop = suivreMembre(
       uid,
       (recue) => {
         setFicheLue(recue);
-        setErreur(null);
+        setErreur(false);
         setChargement(false);
       },
-      (message) => {
-        setErreur(message);
+      () => {
+        setErreur(true);
         setChargement(false);
       },
     );
     return stop;
-  }, [uid, ficheParent]);
+  }, [uid, ficheParent, authEnCours, profile?.uid]);
 
   const fiche = ficheParent !== undefined ? ficheParent : ficheLue;
   const estMoi = profile?.uid === uid;
@@ -202,9 +222,9 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
         competences: competences.split(',').map((morceau) => morceau.trim()).filter(Boolean),
       });
       setEdition(false);
-      setErreur(null);
-    } catch (e) {
-      setErreur(e instanceof Error ? e.message : 'Enregistrement impossible');
+      setAvis(null);
+    } catch {
+      setAvis(t.sauvegardeKo);
     } finally {
       setTravail(false);
     }
@@ -214,12 +234,20 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
     const fichier = event.target.files?.[0];
     event.target.value = '';
     if (!fichier || travail) return;
+    if (!fichier.type.startsWith('image/')) {
+      setAvis(t.photoType);
+      return;
+    }
+    if (fichier.size > AVATAR_MAX_OCTETS) {
+      setAvis(t.photoTaille);
+      return;
+    }
     setTravail(true);
     try {
       await televerserAvatar(uid, fichier);
-      setErreur(null);
-    } catch (e) {
-      setErreur(e instanceof Error ? e.message : 'Téléversement impossible');
+      setAvis(null);
+    } catch {
+      setAvis(t.photoKo);
     } finally {
       setTravail(false);
     }
@@ -397,7 +425,7 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
               </div>
             </div>
 
-            {erreur && <p className="text-xs text-red-400">{erreur}</p>}
+            {avis && <p className="text-xs text-red-400">{avis}</p>}
 
             <div className="flex items-center gap-2 pt-1">
               <button
@@ -421,8 +449,8 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
           </div>
         ) : (
           <div className="mt-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-white font-serif text-xl leading-tight truncate">{fiche.nom}</h3>
+            <div className="flex min-w-0 items-center gap-2">
+              <h3 className="min-w-0 truncate text-white font-serif text-xl leading-tight">{fiche.nom}</h3>
               {fiche.verifie && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-400 shrink-0">
                   <BadgeCheck size={12} />
@@ -436,7 +464,9 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
               {fiche.municipalite || t.sansMunicipalite}
             </p>
 
-            {fiche.devise && <p className="mt-3 text-sm text-slate-300 leading-relaxed">{fiche.devise}</p>}
+            {fiche.devise && (
+              <p className="mt-3 break-words text-sm text-slate-300 leading-relaxed">{fiche.devise}</p>
+            )}
 
             <div className="mt-4">
               <Etiquette>{t.engagement}</Etiquette>
@@ -452,7 +482,7 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
                   {fiche.competences.map((competence) => (
                     <span
                       key={competence}
-                      className="rounded-full bg-white/5 border border-white/5 px-2.5 py-1 text-[11px] text-slate-300"
+                      className="max-w-full break-words rounded-full bg-white/5 border border-white/5 px-2.5 py-1 text-[11px] text-slate-300"
                     >
                       {competence}
                     </span>
@@ -486,7 +516,7 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
               </div>
             )}
 
-            {erreur && <p className="mt-3 text-xs text-red-400">{erreur}</p>}
+            {avis && <p className="mt-3 text-xs text-red-400">{avis}</p>}
           </div>
         )}
       </div>

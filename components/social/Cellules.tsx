@@ -377,8 +377,8 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                         </div>
                         <h3 className="text-lg font-bold text-white leading-snug mb-2" style={deuxLignes}>{c.nom}</h3>
                         <p className="text-sm text-slate-400 leading-relaxed mb-6" style={troisLignes}>{c.description}</p>
-                        <div className="flex items-center justify-between gap-3 mt-auto pt-4 border-t border-white/5">
-                            <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-4 border-t border-white/5">
+                            <div className="flex items-center gap-3 min-w-0">
                                 <div className="flex -space-x-2">
                                     {(c.membreUids || []).slice(0, 4).map((u) => (
                                         <Avatar key={u} uid={u} nom={u === c.fondateurUid ? c.fondateurNom : 'M'} taille="w-7 h-7 text-[10px]" />
