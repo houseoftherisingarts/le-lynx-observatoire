@@ -365,17 +365,17 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                     <div key={c.id} className="glass-card p-6 rounded-3xl border border-white/5 hover:border-white/10 transition-all flex flex-col">
                         <div className="flex items-start justify-between gap-3 mb-4">
                             {c.municipalite ? (
-                                <span className={`${etiquetteClasse} text-emerald-500 flex items-center gap-1.5`}><MapPin size={11} /> {c.municipalite}</span>
+                                <span className={`${etiquetteClasse} text-emerald-500 flex items-center gap-1.5 min-w-0`}><MapPin size={11} className="shrink-0" /> <span className="truncate">{c.municipalite}</span></span>
                             ) : c.theme ? (
-                                <span className={`${etiquetteClasse} text-sky-400 flex items-center gap-1.5`}><Tag size={11} /> {c.theme}</span>
+                                <span className={`${etiquetteClasse} text-sky-400 flex items-center gap-1.5 min-w-0`}><Tag size={11} className="shrink-0" /> <span className="truncate">{c.theme}</span></span>
                             ) : (
-                                <span className={`${etiquetteClasse} text-slate-500`}>{t.etiquette}</span>
+                                <span className={`${etiquetteClasse} text-slate-500 truncate`}>{t.etiquette}</span>
                             )}
-                            <span className={`${etiquetteClasse} flex items-center gap-1.5 ${c.ouverte ? 'text-slate-500' : 'text-amber-500'}`}>
+                            <span className={`${etiquetteClasse} flex items-center gap-1.5 shrink-0 ${c.ouverte ? 'text-slate-500' : 'text-amber-500'}`}>
                                 {c.ouverte ? <Unlock size={11} /> : <Lock size={11} />} {c.ouverte ? t.ouverte : t.fermee}
                             </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white leading-snug mb-2">{c.nom}</h3>
+                        <h3 className="text-lg font-bold text-white leading-snug mb-2" style={deuxLignes}>{c.nom}</h3>
                         <p className="text-sm text-slate-400 leading-relaxed mb-6" style={troisLignes}>{c.description}</p>
                         <div className="flex items-center justify-between gap-3 mt-auto pt-4 border-t border-white/5">
                             <div className="flex items-center gap-3">
