@@ -25,6 +25,7 @@ interface NavigationProps {
   setLanguage: (lang: Language) => void;
   isAdmin: boolean;
   setIsAdmin: (isAdmin: boolean) => void;
+  canAdmin?: boolean;
 }
 
 const Navigation: React.FC<NavigationProps> = ({ 
@@ -35,12 +36,11 @@ const Navigation: React.FC<NavigationProps> = ({
   language, 
   setLanguage,
   isAdmin,
-  setIsAdmin
+  setIsAdmin,
+  canAdmin = false
 }) => {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState(false);
   const logoRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -62,20 +62,11 @@ const Navigation: React.FC<NavigationProps> = ({
       if (currentView === ViewState.ADMIN) {
         setView(ViewState.DASHBOARD);
       }
-    } else {
-      setShowAdminLogin(true);
-      setLoginError(false);
-      setPassword('');
-    }
-  };
-
-  const submitAdminLogin = () => {
-    if (password === (process.env.ADMIN_PASSWORD || 'peterjackson1')) {
+    } else if (canAdmin) {
       setIsAdmin(true);
       setShowAdminLogin(false);
-      setLoginError(false);
     } else {
-      setLoginError(true);
+      setShowAdminLogin(true);
     }
   };
   
@@ -158,19 +149,12 @@ const Navigation: React.FC<NavigationProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="glass-card p-6 rounded-2xl w-full max-w-xs border border-white/10 relative">
              <button onClick={() => setShowAdminLogin(false)} className="absolute top-3 right-3 text-slate-500 hover:text-white"><X size={16}/></button>
-             <h3 className="text-white font-bold mb-4 flex items-center gap-2"><Lock size={16}/> {t.adminMode}</h3>
-             <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && submitAdminLogin()}
-                className={`w-full bg-slate-900 border rounded-lg p-2 text-white mb-3 text-sm focus:outline-none ${loginError ? 'border-red-500' : 'border-white/20'}`}
-                placeholder="Password"
-                autoFocus
-             />
-             {loginError && <p className="text-red-500 text-xs mb-3">Mot de passe incorrect</p>}
-             <button onClick={submitAdminLogin} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-bold">
-               Confirmer
+             <h3 className="text-white font-bold mb-3 flex items-center gap-2"><Lock size={16}/> {t.adminMode}</h3>
+             <p className="text-slate-400 text-sm leading-relaxed mb-4">
+               Le mode administration est reserve aux comptes dont le role est defini dans le registre. Connectez-vous avec le compte autorise, puis reessayez.
+             </p>
+             <button onClick={() => setShowAdminLogin(false)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-bold">
+               Compris
              </button>
           </div>
         </div>

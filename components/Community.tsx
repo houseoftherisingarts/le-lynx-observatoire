@@ -18,6 +18,7 @@ interface CommunityProps {
     activeTab: 'roundtable' | 'resources' | 'chat' | 'actions';
     setActiveTab: (tab: 'roundtable' | 'resources' | 'chat' | 'actions') => void;
     language: Language;
+    isAdmin?: boolean;
 }
 
 interface Post {
@@ -42,7 +43,7 @@ interface Action {
     joinedUserIds: string[]; // To track who joined
 }
 
-const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, activeTab, setActiveTab, language }) => {
+const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, activeTab, setActiveTab, language, isAdmin = false }) => {
     const [chatInput, setChatInput] = useState('');
     const [voteStatus, setVoteStatus] = useState<'yes' | 'no' | 'absent' | 'skip' | null>(null);
     
@@ -423,7 +424,7 @@ const Community: React.FC<CommunityProps> = ({ authState, onSignIn, onSignOut, a
     };
 
     const handleDeleteAction = () => {
-        if (deletePassword === (process.env.DELETE_PASSWORD || 'admin123')) {
+        if (isAdmin) {
             setActions(actions.filter(a => a.id !== deleteModalOpen));
             setDeleteModalOpen(null);
             setDeletePassword('');

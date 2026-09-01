@@ -288,7 +288,7 @@ const Dashboard: React.FC<DashboardProps> = ({ authState, setViewState, onNaviga
 
   // CALME LOGIC
   const handleCalmLogin = () => {
-      if(calmPassword === (process.env.CALM_PASSWORD || 'calmadmin')) {
+      if(isAdmin) {
           setIsCalmAdmin(true);
           setCalmLoginError(false);
           setCalmPassword('');

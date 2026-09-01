@@ -223,6 +223,7 @@ const AppContent: React.FC = () => {
             activeTab={communityTab}
             setActiveTab={setCommunityTab}
             language={language}
+            isAdmin={isAdmin}
           />
         );
       case ViewState.ADMIN:
@@ -628,6 +629,7 @@ const AppContent: React.FC = () => {
                     setLanguage={setLanguage}
                     isAdmin={isAdmin}
                     setIsAdmin={setIsAdmin}
+                    canAdmin={profile?.role === 'admin'}
                 />
             </div>
         </div>
@@ -643,6 +645,7 @@ const AppContent: React.FC = () => {
             setLanguage={setLanguage}
             isAdmin={isAdmin}
             setIsAdmin={setIsAdmin}
+            canAdmin={profile?.role === 'admin'}
         />
       </div>
       
