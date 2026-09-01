@@ -181,6 +181,17 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
         [detail, isAdmin, moi]
     );
 
+    // La file des demandes ne regarde que le fondateur et l'administration.
+    useEffect(() => {
+        if (!ouvertId || !peutGerer) {
+            setDemandes([]);
+            return;
+        }
+        return suivreDemandes(ouvertId, setDemandes, () => setDemandes([]));
+    }, [ouvertId, peutGerer]);
+
+    const enAttente = useMemo(() => demandes.filter((d) => d.statut === 'attente'), [demandes]);
+
     const handleCreer = async () => {
         if (!profile || form.nom.trim().length < 2) return;
         setEnCours(true);
