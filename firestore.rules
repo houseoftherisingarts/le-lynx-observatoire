@@ -83,24 +83,12 @@ service cloud.firestore {
     }
 
     // =====================================================================
-    // Parrainage
+    // Interrupteurs de modules, réglés depuis /admin
     // =====================================================================
 
-    match /codesParrain/{code} {
+    match /config/{doc} {
       allow read: if true;
-      allow create: if signedIn() && request.resource.data.uid == uid();
-      allow update, delete: if isAdmin();
-    }
-
-    match /parrainages/{userId} {
-      allow read: if signedIn();
-      allow create: if isOwner(userId);
-      // La personne inscrit son parrain une seule fois; le parrain voit sa
-      // liste de filleuls grandir sans pouvoir toucher au reste.
-      allow update: if isAdmin()
-        || (isOwner(userId) && touchesOnly(['parrainUid', 'parrainNom', 'maj']))
-        || (signedIn() && touchesOnly(['filleuls', 'nbFilleuls', 'maj']));
-      allow delete: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
     // =====================================================================
