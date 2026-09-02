@@ -18,6 +18,8 @@ const corsOrigins = [
     "https://le-lynx-observatoire.web.app",
     "https://le-lynx-observatoire.firebaseapp.com",
     "https://lynxobservatoire.netlify.app",
+    "https://lelynx.ca",
+    "https://www.lelynx.ca",
     "http://localhost:3000",
     "http://localhost:3001",
 ];
