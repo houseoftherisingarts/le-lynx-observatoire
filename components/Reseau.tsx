@@ -12,6 +12,7 @@ import Moderation from './social/Moderation';
 import CartesQuestions from './social/CartesQuestions';
 import PoserQuestion from './social/PoserQuestion';
 import Connexion from './social/Connexion';
+import { EtatModules, MODULES_PAR_DEFAUT, suivreModules } from '../services/modulesService';
 import Badges from './social/Badges';
 import Soutien from './social/Soutien';
 import Engagement from './social/Engagement';
@@ -142,6 +143,9 @@ const Reseau: React.FC<ReseauProps> = ({
   const [projection, setProjection] = useState(false);
   const [connexionEnCours, setConnexionEnCours] = useState(false);
   const [avis, setAvis] = useState<string | null>(null);
+  const [modules, setModules] = useState<EtatModules>(MODULES_PAR_DEFAUT);
+
+  useEffect(() => suivreModules(setModules), []);
 
   // La fiche publique se crée au premier passage, sans que personne la demande.
   useEffect(() => {
@@ -193,7 +197,24 @@ const Reseau: React.FC<ReseauProps> = ({
     }
   };
 
-  const ongletsVisibles = ONGLETS.filter((o) => !o.adminSeulement || isAdmin);
+  // Un module éteint depuis /admin disparaît de la barre d'onglets.
+  const interrupteurs: Partial<Record<OngletReseau, boolean>> = {
+    cellules: modules.cellules,
+    galerie: modules.galerie,
+    badges: modules.badges,
+    engagement: modules.engagement,
+    soutien: modules.soutien,
+    moderation: modules.moderation,
+  };
+  const ongletsVisibles = ONGLETS.filter(
+    (o) => (!o.adminSeulement || isAdmin) && interrupteurs[o.id] !== false
+  );
+
+  useEffect(() => {
+    if (!ongletsVisibles.some((o) => o.id === onglet) && ongletsVisibles.length > 0) {
+      setOnglet(ongletsVisibles[0].id);
+    }
+  }, [ongletsVisibles.map((o) => o.id).join(','), onglet]);
 
   if (!profile) {
     return (

@@ -13,6 +13,7 @@ import SubmitProject from './components/SubmitProject';
 import Reseau from './components/Reseau';
 import CarteClaims from './components/CarteClaims';
 import DirectEnCours from './components/social/DirectEnCours';
+import AdminModules from './components/AdminModules';
 import CadreJuridique from './components/CadreJuridique';
 import Bibliotheque from './components/Bibliotheque';
 import PoserQuestion from './components/social/PoserQuestion';
@@ -35,6 +36,18 @@ const AppContent: React.FC = () => {
   const [language, setLanguage] = useState<Language>('fr');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [ecrireA, setEcrireA] = useState<string | null>(null);
+
+  // /admin est une vraie adresse. L'hébergement renvoie tout vers index.html,
+  // donc le chemin se lit ici, au démarrage et à chaque retour arrière.
+  const [routeAdmin, setRouteAdmin] = useState(
+    () => typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === '/admin'
+  );
+  useEffect(() => {
+    const relire = () =>
+      setRouteAdmin(window.location.pathname.replace(/\/+$/, '') === '/admin');
+    window.addEventListener('popstate', relire);
+    return () => window.removeEventListener('popstate', relire);
+  }, []);
 
   // Admin: password-based toggle OR Firestore role === 'admin'
   const [isAdmin, setIsAdmin] = useState(false);
@@ -70,7 +83,14 @@ const AppContent: React.FC = () => {
       return () => clearTimeout(timer);
   }, []);
 
+  const quitterAdmin = () => {
+    if (!routeAdmin) return;
+    window.history.pushState({}, '', '/');
+    setRouteAdmin(false);
+  };
+
   const handleNavigateToCommunityAction = () => {
+    quitterAdmin();
       setCommunityTab('actions');
       setView(ViewState.COMMUNITY);
   };
@@ -98,6 +118,7 @@ const AppContent: React.FC = () => {
   };
 
   const renderContent = () => {
+    if (routeAdmin) return <AdminModules language={language} />;
     switch (currentView) {
       case ViewState.DASHBOARD:
         return (
@@ -260,7 +281,7 @@ const AppContent: React.FC = () => {
             <div className="px-6 h-full overflow-y-auto pb-10">
                 <Navigation 
                     currentView={currentView} 
-                    setView={(v) => { setView(v); setMobileMenuOpen(false); }} 
+                    setView={(v) => { quitterAdmin(); setView(v); setMobileMenuOpen(false); }} 
                     isMobile={true} 
                     onLogoClick={() => { handleNavigateToCommunityAction(); setMobileMenuOpen(false); }}
                     language={language}
@@ -277,7 +298,7 @@ const AppContent: React.FC = () => {
       <div className="hidden md:block h-screen sticky top-0 z-30 shrink-0">
         <Navigation 
             currentView={currentView} 
-            setView={setView} 
+            setView={(v) => { quitterAdmin(); setView(v); }} 
             onLogoClick={handleNavigateToCommunityAction}
             language={language}
             setLanguage={setLanguage}
