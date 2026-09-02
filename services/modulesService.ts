@@ -38,7 +38,7 @@ export const DESCRIPTIONS: Record<CleModule, { fr: string; en: string }> = {
     en: 'Conversation thread between a member and the Observatory team.',
   },
   moderation: {
-    fr: 'Файл des signalements et gestion du direct, réservé à l\'administration.',
+    fr: 'File des signalements et gestion du direct, réservé à l\'administration.',
     en: 'Report queue and live-stream panel, restricted to the administration.',
   },
   badges: {
