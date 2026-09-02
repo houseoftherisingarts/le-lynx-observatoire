@@ -19,7 +19,7 @@ import { SlidersHorizontal, Lock, Loader } from 'lucide-react';
  * Un module éteint disparaît de l'interface sans que ses données bougent.
  */
 
-const ORDRE: CleModule[] = ['cellules', 'galerie', 'badges', 'engagement', 'soutien', 'moderation'];
+const ORDRE: CleModule[] = ['cellules', 'galerie', 'badges', 'engagement', 'soutien', 'moderation', 'finances'];
 
 const TEXTES = {
   fr: {

@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ViewState, Language } from '../types';
+import { EtatModules, MODULES_PAR_DEFAUT, suivreModules } from '../services/modulesService';
 import { 
   LayoutDashboard, 
   Newspaper, 
@@ -75,7 +76,7 @@ const Navigation: React.FC<NavigationProps> = ({
   const translations = {
     fr: {
       dashboard: 'Tableau de bord',
-      community: 'Réseau Résistance',
+      community: 'Le QG',
       reseau: 'Le réseau',
       questions: 'Poser une question',
       news: 'Veille & Signaux',
@@ -91,7 +92,7 @@ const Navigation: React.FC<NavigationProps> = ({
     },
     en: {
       dashboard: 'Dashboard',
-      community: 'Resistance Network',
+      community: 'The HQ',
       reseau: 'The network',
       questions: 'Ask a question',
       news: 'Monitoring & Signals',
@@ -107,7 +108,7 @@ const Navigation: React.FC<NavigationProps> = ({
     },
     ani: {
       dashboard: 'Dashboard',
-      community: 'Resistance Network',
+      community: 'The HQ',
       reseau: 'The network',
       questions: 'Ask a question',
       news: 'Monitoring & Signals',
@@ -125,6 +126,11 @@ const Navigation: React.FC<NavigationProps> = ({
 
   const t = translations[language];
 
+  // Les interrupteurs de /admin commandent la navigation : Finances reste
+  // éteint tant que l'administration ne l'allume pas.
+  const [modules, setModules] = useState<EtatModules>(MODULES_PAR_DEFAUT);
+  useEffect(() => suivreModules(setModules), []);
+
   const navItems = [
     { id: ViewState.DASHBOARD, label: t.dashboard, icon: LayoutDashboard },
     { id: ViewState.COMMUNITY, label: t.community, icon: Users },
@@ -136,7 +142,7 @@ const Navigation: React.FC<NavigationProps> = ({
     { id: ViewState.LIBRARY, label: t.library, icon: BookOpen },
     { id: ViewState.CHAT, label: t.chat, icon: MessageSquare },
     { id: ViewState.QUESTIONS, label: t.questions, icon: MessageCircleQuestion },
-    { id: ViewState.ADMIN, label: t.admin, icon: DollarSignIcon }, // Changed Icon and Label
+    ...(modules.finances ? [{ id: ViewState.ADMIN, label: t.admin, icon: DollarSignIcon }] : []),
   ];
 
   // Helper icon for Finances (using simple dollar sign concept or just Lock as placeholder if Dollar not imported)

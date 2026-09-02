@@ -7,7 +7,7 @@ import { db } from './firebaseConfig';
  * éteint disparaît de l'interface, ses données restent en place.
  */
 
-export type CleModule = 'engagement' | 'soutien' | 'moderation' | 'badges' | 'galerie' | 'cellules';
+export type CleModule = 'engagement' | 'soutien' | 'moderation' | 'badges' | 'galerie' | 'cellules' | 'finances';
 
 export interface EtatModules {
   engagement: boolean;
@@ -16,6 +16,7 @@ export interface EtatModules {
   badges: boolean;
   galerie: boolean;
   cellules: boolean;
+  finances: boolean;
 }
 
 /** Ce que voit une personne quand rien n'a encore été réglé. */
@@ -26,6 +27,7 @@ export const MODULES_PAR_DEFAUT: EtatModules = {
   badges: true,
   galerie: true,
   cellules: true,
+  finances: false,
 };
 
 export const DESCRIPTIONS: Record<CleModule, { fr: string; en: string }> = {
@@ -53,6 +55,10 @@ export const DESCRIPTIONS: Record<CleModule, { fr: string; en: string }> = {
     fr: 'Comités locaux par municipalité ou par métier.',
     en: 'Local committees by municipality or by trade.',
   },
+  finances: {
+    fr: 'Onglet Finances dans la navigation, avec les dons et les dépenses.',
+    en: 'Finances tab in the navigation, with donations and expenses.',
+  },
 };
 
 export const NOMS: Record<CleModule, { fr: string; en: string }> = {
@@ -62,6 +68,7 @@ export const NOMS: Record<CleModule, { fr: string; en: string }> = {
   badges: { fr: 'Badges', en: 'Badges' },
   galerie: { fr: 'Galerie', en: 'Gallery' },
   cellules: { fr: 'Cellules', en: 'Cells' },
+  finances: { fr: 'Finances', en: 'Finances' },
 };
 
 const REF = () => doc(db, 'config', 'modules');
@@ -82,6 +89,7 @@ export const suivreModules = (
         badges: brut.badges ?? MODULES_PAR_DEFAUT.badges,
         galerie: brut.galerie ?? MODULES_PAR_DEFAUT.galerie,
         cellules: brut.cellules ?? MODULES_PAR_DEFAUT.cellules,
+        finances: brut.finances ?? MODULES_PAR_DEFAUT.finances,
       });
     },
     (e) => {
