@@ -11,6 +11,8 @@ import Photos from './social/Photos';
 import Moderation from './social/Moderation';
 import CartesQuestions from './social/CartesQuestions';
 import PoserQuestion from './social/PoserQuestion';
+import Connexion from './social/Connexion';
+import BienvenueProfil from './social/BienvenueProfil';
 import { demanderAlliance } from '../services/dmService';
 import {
   Users,
@@ -187,22 +189,8 @@ const Reseau: React.FC<ReseauProps> = ({
           <p className="text-slate-400 font-light leading-relaxed">{t.intro}</p>
         </header>
 
-        <div className="glass-card rounded-3xl border border-white/5 p-8 md:p-10 text-center">
-          <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-emerald-900/20 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-            <Users size={24} />
-          </div>
-          <h3 className="text-xl font-bold text-white mb-3">{t.connexionTitre}</h3>
-          <p className="text-slate-400 text-sm font-light leading-relaxed max-w-lg mx-auto mb-7">
-            {t.connexionTexte}
-          </p>
-          <button
-            onClick={seConnecter}
-            disabled={connexionEnCours}
-            className="inline-flex items-center gap-2 px-7 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-full text-xs font-bold uppercase tracking-widest transition-colors"
-          >
-            <LogIn size={14} />
-            {connexionEnCours ? t.connexionEnCours : t.connexion}
-          </button>
+        <div className="flex justify-center">
+          <Connexion language={language} />
         </div>
 
         <div className="mt-10">
@@ -326,6 +314,8 @@ const Reseau: React.FC<ReseauProps> = ({
           </div>
         </div>
       )}
+
+      <BienvenueProfil language={language} />
 
       {projection && (
         <CartesQuestions
