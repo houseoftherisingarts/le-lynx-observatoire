@@ -388,8 +388,18 @@ export async function retirerBadge(uid: string, badgeId: string): Promise<void> 
 }
 
 /**
- * Choisit les badges de vitrine. La personne ecrit seulement ce champ, et la
- * liste est nettoyee, dedupliquee et coupee a trois avant l'appel.
+ * Choisit les badges de vitrine. La personne ecrit seulement `exposes` et
+ * `maj`, sur une fiche qui existe deja : on n'expose que ce qu'on a obtenu, et
+ * l'attribution reste a l'administration.
+ *
+ * La regle Firestore actuelle (`match /badges/{userId} { allow write: if
+ * isAdmin(); }`) refuse cette ecriture a un membre. Il lui faut la clause :
+ *
+ *   allow update: if isAdmin()
+ *     || (isOwner(userId)
+ *         && touchesOnly(['exposes', 'maj'])
+ *         && request.resource.data.exposes.size() <= 3
+ *         && request.resource.data.exposes.hasOnly(resource.data.obtenus.keys()));
  */
 export async function exposerBadges(uid: string, ids: string[]): Promise<void> {
   const propre: string[] = [];
@@ -398,5 +408,5 @@ export async function exposerBadges(uid: string, ids: string[]): Promise<void> {
     propre.push(id);
     if (propre.length === MAX_EXPOSES) break;
   }
-  await setDoc(doc(db, 'badges', uid), { uid, exposes: propre, maj: serverTimestamp() }, { merge: true });
+  await updateDoc(doc(db, 'badges', uid), { exposes: propre, maj: serverTimestamp() });
 }

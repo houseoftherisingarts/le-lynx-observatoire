@@ -56,7 +56,7 @@ const TEXTES = {
     vitrinePleine: `Votre vitrine est pleine. Retirez un badge avant d'en ajouter un autre.`,
     aucun: 'Aucun badge pour le moment',
     aucunDesc:
-      "Rien n'est encore inscrit ici. Le premier badge arrivera après une première prise de parole, une présence en assemblée ou un dépôt dans la galerie.",
+      "Rien n'est encore inscrit ici. Le premier badge arrivera après une première prise de parole ou une présence en assemblée.",
     aucunCompact: 'Aucun badge en vitrine',
     chargement: 'Chargement des badges',
     erreur: 'Les badges ne se chargent pas',
@@ -79,7 +79,7 @@ const TEXTES = {
     vitrinePleine: 'Your display is full. Remove one badge before adding another.',
     aucun: 'No badge yet',
     aucunDesc:
-      'Nothing is recorded here yet. The first badge arrives after a first post, a council meeting attended or a photograph added to the gallery.',
+      'Nothing is recorded here yet. The first badge arrives after a first post or a council meeting attended.',
     aucunCompact: 'No badge on display',
     chargement: 'Loading badges',
     erreur: 'The badges will not load',
@@ -191,7 +191,7 @@ const RangeeCompacte: React.FC<{
             </span>
             <span
               role="tooltip"
-              className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-56 max-w-[70vw] -translate-x-1/2 rounded-2xl border border-white/10 bg-[#02040a]/95 p-3 text-left shadow-2xl backdrop-blur-md group-hover:block"
+              className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-56 max-w-[70vw] -translate-x-1/2 rounded-2xl border border-white/10 bg-[#02040a]/95 p-3 text-left shadow-2xl backdrop-blur-md md:group-hover:block"
             >
               <span className={`block ${ETIQUETTE} ${palette.texte}`}>{badge.nom[lang]}</span>
               <span className="mt-1.5 block text-[11px] leading-relaxed text-slate-300">
@@ -343,6 +343,7 @@ const Badges: React.FC<BadgesProps> = ({ language, uid, isAdmin, compact }) => {
   useEffect(() => {
     setFiche(null);
     setErreur(false);
+    setAvis('');
     const desabonner = suivreBadges(
       uid,
       (recue) => {

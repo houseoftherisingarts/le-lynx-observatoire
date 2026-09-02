@@ -47,6 +47,11 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, 'membres', ALEX), { uid: ALEX, nom: 'Alex', verifie: false });
   await setDoc(doc(db, 'news', 'n1'), { title: 'Chénéville', sortDate: '2026-08-30' });
   await setDoc(doc(db, 'auditStatus', 'latest'), { lastRunAt: '2026-09-01T00:00:00Z' });
+  // Les badges sont accordés par l'administration : le document existe déjà.
+  await setDoc(doc(db, 'badges', BEA), { uid: BEA, obtenus: { 'premiere-parole': 1 }, exposes: [] });
+  await setDoc(doc(db, 'badges', ALEX), { uid: ALEX, obtenus: {}, exposes: [] });
+  await setDoc(doc(db, 'directs', 'actuel'), { actif: false, titre: 'Aucun direct' });
+  await setDoc(doc(db, 'engagement', ALEX), { uid: ALEX, nom: 'Alex', total: 12, parCategorie: {} });
 });
 
 const alex = env.authenticatedContext(ALEX).firestore();
@@ -130,6 +135,21 @@ verifier('personne ne bloque au nom d’un autre', () => assertFails(setDoc(doc(
 // --- Signalement d'un autre projet ------------------------------------------------
 verifier('un passant signale un projet', () => assertSucceeds(addDoc(collection(passant, 'projectSubmissions'), { projectName: 'Sablière du rang 6', description: 'Travaux sans avis public.', createdAt: serverTimestamp() })));
 verifier('un membre ne lit pas le registre des signalements', () => assertFails(getDoc(doc(bea, 'projectSubmissions', 'x'))));
+
+// --- Badges, parrainage, soutien, direct, engagement --------------------------------
+verifier('un membre voit les badges', () => assertSucceeds(getDoc(doc(bea, 'badges', ALEX))));
+verifier('personne ne s’accorde un badge', () => assertFails(setDoc(doc(bea, 'badges', BEA), { uid: BEA, obtenus: { fondateur: 1 }, exposes: [] })));
+verifier('chacun choisit ses badges de vitrine', () => assertSucceeds(updateDoc(doc(bea, 'badges', BEA), { exposes: ['premiere-parole'], maj: serverTimestamp() })));
+verifier('un code de parrainage se crée', () => assertSucceeds(setDoc(doc(bea, 'codesParrain', 'ABCDEF'), { code: 'ABCDEF', uid: BEA, nom: 'Béa', creeLe: serverTimestamp() })));
+verifier('personne ne crée un code au nom d’un autre', () => assertFails(setDoc(doc(bea, 'codesParrain', 'ZZZZZZ'), { code: 'ZZZZZZ', uid: ALEX, nom: 'Alex' })));
+verifier('un fil de soutien s’ouvre', () => assertSucceeds(setDoc(doc(bea, 'soutien', BEA), { uid: BEA, nom: 'Béa', courriel: 'b@x.ca', statut: 'ouvert', nonLusEquipe: 0, nonLusMembre: 0, creeLe: serverTimestamp() })));
+verifier('un membre écrit dans son fil', () => assertSucceeds(addDoc(collection(bea, 'soutien', BEA, 'messages'), { auteurUid: BEA, auteurNom: 'Béa', coteEquipe: false, texte: 'Bonjour.', creeLe: serverTimestamp() })));
+verifier('un membre ne se fait pas passer pour l’équipe', () => assertFails(addDoc(collection(bea, 'soutien', BEA, 'messages'), { auteurUid: BEA, auteurNom: 'Béa', coteEquipe: true, texte: 'Faux.', creeLe: serverTimestamp() })));
+verifier('un tiers ne lit pas le fil de soutien', () => assertFails(getDoc(doc(env.authenticatedContext('uid-curieux').firestore(), 'soutien', BEA))));
+verifier('un passant lit le direct', () => assertSucceeds(getDoc(doc(passant, 'directs', 'actuel'))));
+verifier('un membre n’ouvre pas un direct', () => assertFails(setDoc(doc(bea, 'directs', 'actuel'), { actif: true, titre: 'Faux direct' })));
+verifier('le classement d’engagement est lisible', () => assertSucceeds(getDoc(doc(bea, 'engagement', ALEX))));
+verifier('personne ne s’accorde des points', () => assertFails(setDoc(doc(bea, 'engagement', BEA), { uid: BEA, nom: 'Béa', total: 9999, parCategorie: {} })));
 
 // --- Verdict ----------------------------------------------------------------------
 let echecs = 0;

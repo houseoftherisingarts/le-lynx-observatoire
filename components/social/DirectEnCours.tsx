@@ -62,7 +62,7 @@ const TEXTES = {
     fLieu: 'Place (optional)',
     fUrl: 'Broadcast address (optional)',
     fDebut: 'Start time (optional)',
-    phTitre: 'Citizens assembly on the La Loutre project',
+    phTitre: "Citizens' assembly on the La Loutre project",
     phSousTitre: 'The question period follows the presentation',
     phLieu: 'Duhamel community hall',
     phUrl: 'https://',
@@ -109,8 +109,14 @@ const ecrireFermeture = (valeur: string): void => {
   }
 };
 
-const heureLocale = (ms: number): string =>
-  new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+/** L'heure seule quand c'est aujourd'hui, la date avec, sinon. */
+const heureLocale = (ms: number): string => {
+  const d = new Date(ms);
+  const heure = { hour: '2-digit', minute: '2-digit' } as const;
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString([], heure)
+    : d.toLocaleString([], { day: 'numeric', month: 'long', ...heure });
+};
 
 /** Millisecondes vers la valeur d'un champ datetime-local, dans l'heure du navigateur. */
 const versChampDate = (ms: number): string => {
@@ -220,7 +226,7 @@ interface PanneauDirectProps {
 
 export const PanneauDirect: React.FC<PanneauDirectProps> = ({ language }) => {
   const t = TEXTES[langue(language)];
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   const [direct, setDirect] = useState<Direct>(DIRECT_VIDE);
   const [charge, setCharge] = useState(false);
   const [erreurLecture, setErreurLecture] = useState(false);
@@ -258,6 +264,15 @@ export const PanneauDirect: React.FC<PanneauDirectProps> = ({ language }) => {
       ),
     []
   );
+
+  if (loading || !charge) {
+    return (
+      <div className="glass-card flex items-center gap-3 rounded-3xl border border-white/5 p-8 text-sm text-slate-400">
+        <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+        {t.titrePanneau}
+      </div>
+    );
+  }
 
   if (profile?.role !== 'admin') {
     return (
@@ -329,15 +344,6 @@ export const PanneauDirect: React.FC<PanneauDirectProps> = ({ language }) => {
       setEnvoi(false);
     }
   };
-
-  if (!charge) {
-    return (
-      <div className="glass-card flex items-center gap-3 rounded-3xl border border-white/5 p-8 text-sm text-slate-400">
-        <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-        {t.titrePanneau}
-      </div>
-    );
-  }
 
   if (erreurLecture) {
     return (
@@ -453,6 +459,8 @@ export const PanneauDirect: React.FC<PanneauDirectProps> = ({ language }) => {
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p
+          role="status"
+          aria-live="polite"
           className={`text-xs ${
             message ? 'text-red-300' : succes ? 'text-emerald-300' : 'text-slate-600'
           }`}

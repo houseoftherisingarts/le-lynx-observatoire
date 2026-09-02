@@ -68,7 +68,76 @@ service cloud.firestore {
 
     match /badges/{userId} {
       allow read: if signedIn();
+      allow create: if isAdmin();
+      // Chacun choisit ses badges de vitrine, personne ne s'accorde un badge.
+      allow update: if isAdmin()
+        || (isOwner(userId) && touchesOnly(['exposes', 'maj']));
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // Parrainage
+    // =====================================================================
+
+    match /codesParrain/{code} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.uid == uid();
+      allow update, delete: if isAdmin();
+    }
+
+    match /parrainages/{userId} {
+      allow read: if signedIn();
+      allow create: if isOwner(userId);
+      // La personne inscrit son parrain une seule fois; le parrain voit sa
+      // liste de filleuls grandir sans pouvoir toucher au reste.
+      allow update: if isAdmin()
+        || (isOwner(userId) && touchesOnly(['parrainUid', 'parrainNom', 'maj']))
+        || (signedIn() && touchesOnly(['filleuls', 'nbFilleuls', 'maj']));
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // Conversations de soutien
+    // =====================================================================
+
+    match /soutien/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if (isOwner(userId) && request.resource.data.coteEquipe == false)
+          || (isAdmin() && request.resource.data.coteEquipe == true);
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
+
+    // =====================================================================
+    // Direct en cours
+    // =====================================================================
+
+    match /directs/{doc} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // Points d'engagement
+    // =====================================================================
+
+    // Le total et le journal appartiennent a l'administration. Personne ne
+    // s'accorde de points depuis son navigateur.
+    match /engagement/{userId} {
+      allow read: if signedIn();
       allow write: if isAdmin();
+
+      match /journal/{entree} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isAdmin();
+      }
     }
 
     // =====================================================================
