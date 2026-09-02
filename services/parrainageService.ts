@@ -7,7 +7,7 @@ import {
   onSnapshot,
   serverTimestamp,
   setDoc,
-  updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import type { UserProfile } from '../context/AuthContext';
@@ -41,6 +41,25 @@ export interface FicheParrainage {
   nbFilleuls: number;
   creeLe: Timestamp | null;
   maj: Timestamp | null;
+}
+
+/**
+ * Les refus voyagent par motif, jamais par phrase : l'interface est bilingue et
+ * c'est elle qui choisit les mots.
+ */
+export type MotifParrainage =
+  | 'format'
+  | 'inconnu'
+  | 'orphelin'
+  | 'sien'
+  | 'deja'
+  | 'codeIndisponible';
+
+export class ErreurParrainage extends Error {
+  constructor(readonly motif: MotifParrainage) {
+    super(motif);
+    this.name = 'ErreurParrainage';
+  }
 }
 
 // --- Constantes -------------------------------------------------------------
@@ -97,9 +116,14 @@ const enFilleul = (valeur: unknown): Filleul | null => {
 const enFiche = (uid: string, donnees: Record<string, unknown>): FicheParrainage => {
   const bruts = Array.isArray(donnees.filleuls) ? donnees.filleuls : [];
   const filleuls: Filleul[] = [];
+  // arrayUnion ne dedoublonne que sur des objets identiques : une meme personne
+  // inscrite sous deux noms reviendrait deux fois. On la garde une seule.
+  const vus = new Set<string>();
   for (const brut of bruts) {
     const filleul = enFilleul(brut);
-    if (filleul) filleuls.push(filleul);
+    if (!filleul || vus.has(filleul.uid)) continue;
+    vus.add(filleul.uid);
+    filleuls.push(filleul);
     if (filleuls.length >= MAX_FILLEULS_AFFICHES) break;
   }
 
@@ -126,14 +150,17 @@ const enFiche = (uid: string, donnees: Record<string, unknown>): FicheParrainage
  * Le code est reserve dans `codesParrain/{CODE}` avant d'etre inscrit dans la
  * fiche, ce qui garantit qu'aucune autre personne ne porte le meme.
  */
-export async function assurerCode(profile: UserProfile): Promise<FicheParrainage> {
+async function creerOuLireFiche(profile: UserProfile): Promise<FicheParrainage> {
   const nom = couper(profile.displayName, MAX_NOM) || 'Membre';
   const reference = doc(db, 'parrainages', profile.uid);
   const capture = await getDoc(reference);
 
   if (capture.exists()) {
     const fiche = enFiche(profile.uid, capture.data() as Record<string, unknown>);
-    if (fiche.code) return fiche;
+    // Les regles ne laissent plus retoucher au code une fois la fiche ecrite :
+    // une fiche sans code lisible se signale au lieu d'etre reparee en douce.
+    if (!fiche.code) throw new ErreurParrainage('codeIndisponible');
+    return fiche;
   }
 
   let code = '';
@@ -156,26 +183,40 @@ export async function assurerCode(profile: UserProfile): Promise<FicheParrainage
     }
   }
 
-  if (!code) {
-    throw new Error("Le code n'a pas pu être créé. Rechargez la page et reprenez.");
-  }
+  if (!code) throw new ErreurParrainage('codeIndisponible');
 
-  await setDoc(
-    reference,
-    {
-      uid: profile.uid,
-      nom,
-      code,
-      filleuls: [],
-      nbFilleuls: 0,
-      creeLe: serverTimestamp(),
-      maj: serverTimestamp(),
-    },
-    { merge: true },
-  );
+  await setDoc(reference, {
+    uid: profile.uid,
+    nom,
+    code,
+    filleuls: [],
+    nbFilleuls: 0,
+    creeLe: serverTimestamp(),
+    maj: serverTimestamp(),
+  });
 
   const relue = await getDoc(reference);
   return enFiche(profile.uid, (relue.data() ?? {}) as Record<string, unknown>);
+}
+
+/**
+ * Un seul appel en vol a la fois. Sans ce garde-fou, l'ecran et la reclamation
+ * d'un code lancent la creation en meme temps : la deuxieme ecriture devient
+ * une mise a jour, que les regles refusent, et un code part en fumee.
+ */
+let enVol: { uid: string; promesse: Promise<FicheParrainage> } | null = null;
+
+export function assurerCode(profile: UserProfile): Promise<FicheParrainage> {
+  if (enVol && enVol.uid === profile.uid) return enVol.promesse;
+
+  const promesse = creerOuLireFiche(profile);
+  enVol = { uid: profile.uid, promesse };
+  void promesse
+    .catch(() => undefined)
+    .then(() => {
+      if (enVol && enVol.promesse === promesse) enVol = null;
+    });
+  return promesse;
 }
 
 /** Abonnement a ma fiche de parrainage. Rend la fonction de desabonnement. */
@@ -205,32 +246,26 @@ export function suivreMonParrainage(
  */
 export async function reclamerParrain(code: string, moi: UserProfile): Promise<void> {
   const propre = normaliserCode(code);
-  if (!propre) {
-    throw new Error('Un code compte six caractères. Vérifiez celui que vous avez reçu.');
-  }
+  if (!propre) throw new ErreurParrainage('format');
 
   const casier = await getDoc(doc(db, 'codesParrain', propre));
-  if (!casier.exists()) {
-    throw new Error("Ce code n'existe pas dans le réseau.");
-  }
+  if (!casier.exists()) throw new ErreurParrainage('inconnu');
 
   const donnees = casier.data() as Record<string, unknown>;
   const parrainUid = couper(donnees.uid, 128);
   const parrainNom = couper(donnees.nom, MAX_NOM) || 'Membre';
 
-  if (!parrainUid) {
-    throw new Error("Ce code n'est rattaché à personne.");
-  }
-  if (parrainUid === moi.uid) {
-    throw new Error('Ce code est le vôtre. Envoyez-le à quelqu’un d’autre.');
-  }
+  if (!parrainUid) throw new ErreurParrainage('orphelin');
+  if (parrainUid === moi.uid) throw new ErreurParrainage('sien');
 
   const mienne = await assurerCode(moi);
-  if (mienne.parrainUid) {
-    throw new Error('Vous avez déjà un parrain, et cela ne se change pas.');
-  }
+  if (mienne.parrainUid) throw new ErreurParrainage('deja');
 
-  await updateDoc(doc(db, 'parrainages', moi.uid), {
+  // Les deux ecritures partent ensemble : personne ne se retrouve avec un
+  // parrain qui n'a jamais recu le filleul, ni l'inverse.
+  const lot = writeBatch(db);
+
+  lot.update(doc(db, 'parrainages', moi.uid), {
     parrainUid,
     parrainNom,
     maj: serverTimestamp(),
@@ -238,7 +273,7 @@ export async function reclamerParrain(code: string, moi: UserProfile): Promise<v
 
   // `depuis` est une estampille du navigateur : Firestore refuse
   // serverTimestamp() a l'interieur d'un element de tableau.
-  await updateDoc(doc(db, 'parrainages', parrainUid), {
+  lot.update(doc(db, 'parrainages', parrainUid), {
     filleuls: arrayUnion({
       uid: moi.uid,
       nom: couper(moi.displayName, MAX_NOM) || 'Membre',
@@ -247,6 +282,8 @@ export async function reclamerParrain(code: string, moi: UserProfile): Promise<v
     nbFilleuls: increment(1),
     maj: serverTimestamp(),
   });
+
+  await lot.commit();
 }
 
 // --- Le lien d'invitation ---------------------------------------------------

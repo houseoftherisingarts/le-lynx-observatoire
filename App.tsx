@@ -12,6 +12,7 @@ import AdminPanel from './components/AdminPanel';
 import SubmitProject from './components/SubmitProject';
 import Reseau from './components/Reseau';
 import CarteClaims from './components/CarteClaims';
+import DirectEnCours from './components/social/DirectEnCours';
 import CadreJuridique from './components/CadreJuridique';
 import Bibliotheque from './components/Bibliotheque';
 import PoserQuestion from './components/social/PoserQuestion';
@@ -294,6 +295,7 @@ const AppContent: React.FC = () => {
           </div>
         )}
         <div className="max-w-7xl mx-auto pb-10">
+          <DirectEnCours language={language} />
           {renderContent()}
         </div>
 

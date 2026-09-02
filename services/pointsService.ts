@@ -1,6 +1,5 @@
 import {
   Timestamp,
-  addDoc,
   collection,
   doc,
   increment,
@@ -9,7 +8,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 
@@ -152,8 +151,8 @@ export const categorieDuMotif = (motif: string): CategorieEngagement =>
 const MAX_NOM = 120;
 const MAX_MOTIF = 60;
 const MAX_DETAIL = 300;
-const POINTS_MIN = -500;
-const POINTS_MAX = 500;
+export const POINTS_MIN = -500;
+export const POINTS_MAX = 500;
 const LIMITE_CLASSEMENT = 100;
 const LIMITE_JOURNAL = 100;
 
@@ -260,9 +259,12 @@ export const rangDe = (uid: string, classement: FicheEngagement[]): number =>
 // --- Ecriture (administration seulement) ------------------------------------
 
 /**
- * Accorde des points a une personne : une ligne au journal, puis le total et
- * la categorie qui montent par `increment`. La regle Firestore refuse cet
- * appel a quiconque n'est pas administrateur.
+ * Accorde des points a une personne : une ligne au journal, le total et la
+ * categorie qui montent par `increment`, le tout dans un seul lot. La regle
+ * Firestore refuse cet appel a quiconque n'est pas administrateur.
+ *
+ * Les refus partent en code (`points/motif`, `points/bornes`...) plutot qu'en
+ * phrase : l'ecran les traduit dans la langue de la personne qui regarde.
  */
 export async function accorderPoints(
   uid: string,
@@ -272,29 +274,31 @@ export async function accorderPoints(
   detail?: string,
 ): Promise<void> {
   const cible = couper(uid, 128);
-  if (!cible) throw new Error('Aucune personne visée.');
+  if (!cible) throw new Error('points/cible');
 
   const motifPropre = couper(motif, MAX_MOTIF);
-  if (!PAR_CLE.has(motifPropre)) throw new Error('Ce motif ne figure pas au barème.');
+  if (!PAR_CLE.has(motifPropre)) throw new Error('points/motif');
 
   const valeur = nombre(points);
-  if (valeur === 0) throw new Error('Un geste vaut plus que zéro point.');
-  if (valeur < POINTS_MIN || valeur > POINTS_MAX) {
-    throw new Error(`Les points restent entre ${POINTS_MIN} et ${POINTS_MAX}.`);
-  }
+  if (valeur === 0) throw new Error('points/zero');
+  if (valeur < POINTS_MIN || valeur > POINTS_MAX) throw new Error('points/bornes');
 
   const detailPropre = couper(detail, MAX_DETAIL);
   const categorie = categorieDuMotif(motifPropre);
+  const fiche = doc(db, 'engagement', cible);
+  const entree = doc(collection(fiche, 'journal'));
 
-  await addDoc(collection(db, 'engagement', cible, 'journal'), {
+  // Un seul lot : un total qui monte sans sa ligne au journal serait un point
+  // que plus personne ne peut expliquer.
+  const lot = writeBatch(db);
+  lot.set(entree, {
     motif: motifPropre,
     points: valeur,
     detail: detailPropre,
     creeLe: serverTimestamp(),
   });
-
-  await setDoc(
-    doc(db, 'engagement', cible),
+  lot.set(
+    fiche,
     {
       uid: cible,
       nom: couper(nom, MAX_NOM) || 'Membre',
@@ -304,4 +308,5 @@ export async function accorderPoints(
     },
     { merge: true },
   );
+  await lot.commit();
 }

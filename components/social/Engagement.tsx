@@ -8,6 +8,8 @@ import {
   CATEGORIES,
   EntreeJournal,
   FicheEngagement,
+  POINTS_MAX,
+  POINTS_MIN,
   accorderPoints,
   libelleMotif,
   rangDe,
@@ -21,7 +23,7 @@ const T = {
     etiquette: 'Points d’engagement',
     titre: 'Qui porte le travail',
     intro:
-      'Ces points ne s’échangent contre rien. Ils n’ouvrent aucune récompense, aucun rabais, aucune monnaie. Ils mesurent seulement la contribution à la lutte contre le projet La Loutre, pour que le réseau voie qui tient la ligne et vers qui se tourner quand il faut du monde.',
+      'Ces points ne s’échangent contre rien et n’ouvrent aucune récompense. Ils mesurent la contribution à la lutte contre le projet La Loutre, pour que le réseau voie qui tient la ligne et vers qui se tourner quand il faut du monde.',
     monTotal: 'Mon total',
     point: 'point',
     points: 'points',
@@ -59,7 +61,11 @@ const T = {
     envoiEnCours: 'Inscription en cours',
     succes: 'Points accordés à',
     erreurEcriture: 'L’inscription a échoué.',
-    bareme: 'Barème',
+    errCible: 'Choisissez la personne qui reçoit les points.',
+    errMotif: 'Ce geste ne figure pas au barème.',
+    errZero: 'Un geste vaut plus que zéro point.',
+    errBornes: `Les points restent entre ${POINTS_MIN} et ${POINTS_MAX}.`,
+    bareme: 'Barème :',
     annuaireVide:
       'Aucune fiche de membre n’est encore ouverte. Le formulaire s’activera dès qu’une personne aura rempli la sienne.',
   },
@@ -67,7 +73,7 @@ const T = {
     etiquette: 'Engagement points',
     titre: 'Who carries the work',
     intro:
-      'These points cannot be exchanged for anything. They unlock no reward, no discount, no currency. They only measure the contribution to the fight against the La Loutre project, so the network can see who holds the line and who to call when people are needed.',
+      'These points buy nothing and unlock no reward. They measure the contribution to the fight against the La Loutre project, so the network can see who holds the line and who to call when people are needed.',
     monTotal: 'My total',
     point: 'point',
     points: 'points',
@@ -104,7 +110,11 @@ const T = {
     envoiEnCours: 'Recording',
     succes: 'Points awarded to',
     erreurEcriture: 'Recording failed.',
-    bareme: 'Scale',
+    errCible: 'Choose the person who receives the points.',
+    errMotif: 'This gesture is not on the scale.',
+    errZero: 'A gesture is worth more than zero points.',
+    errBornes: `Points stay between ${POINTS_MIN} and ${POINTS_MAX}.`,
+    bareme: 'Scale:',
     annuaireVide:
       'No member profile has been opened yet. The form will activate as soon as someone fills theirs in.',
   },
@@ -124,6 +134,15 @@ const initiales = (nom: string): string =>
     .join('') || '?';
 
 const TOP = 20;
+const LISTE = 100;
+
+/** Les refus du service, traduits dans la langue de la personne qui regarde. */
+const CODES: Record<string, 'errCible' | 'errMotif' | 'errZero' | 'errBornes'> = {
+  'points/cible': 'errCible',
+  'points/motif': 'errMotif',
+  'points/zero': 'errZero',
+  'points/bornes': 'errBornes',
+};
 
 export interface EngagementProps {
   language: Language;
@@ -137,7 +156,9 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
 
   const [classement, setClassement] = useState<FicheEngagement[]>([]);
   const [maFiche, setMaFiche] = useState<FicheEngagement | null>(null);
-  const [journal, setJournal] = useState<EntreeJournal[]>([]);
+  // `null` tant que la premiere capture n'est pas arrivee : sans cela l'ecran
+  // « votre journal est vide » clignote avant les lignes.
+  const [journal, setJournal] = useState<EntreeJournal[] | null>(null);
   const [membres, setMembres] = useState<MembreFiche[]>([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -156,7 +177,7 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
     if (!uid) {
       setClassement([]);
       setMaFiche(null);
-      setJournal([]);
+      setJournal(null);
       setErreur(null);
       setChargement(false);
       return;
@@ -168,7 +189,7 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
         setErreur(null);
         setChargement(false);
       },
-      100,
+      LISTE,
       (message) => {
         setErreur(message);
         setChargement(false);
@@ -195,6 +216,14 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
 
   const monTotal = maFiche?.total ?? 0;
   const monRang = uid ? rangDe(uid, classement) : 0;
+  // Au-dela du plafond de la requete, `classement.length` n'est plus le nombre
+  // de personnes classees : on montre le rang seul plutot qu'un faux total.
+  const rangAffiche =
+    monRang > 0
+      ? classement.length < LISTE
+        ? `${monRang} / ${classement.length}`
+        : String(monRang)
+      : t.horsClassement;
   const vingt = useMemo(() => classement.slice(0, TOP), [classement]);
   const moiHorsTop = useMemo(
     () => (uid && monRang > TOP ? classement[monRang - 1] : null),
@@ -224,11 +253,20 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
       setMessageForm(`${t.succes} ${fiche.nom}.`);
       setDetail('');
     } catch (souci) {
-      setErreurForm(souci instanceof Error ? souci.message : t.erreurEcriture);
+      const cle = souci instanceof Error ? CODES[souci.message] : undefined;
+      if (!cle) console.error('accorderPoints', souci);
+      setErreurForm(cle ? t[cle] : t.erreurEcriture);
     } finally {
       setEnvoi(false);
     }
   };
+
+  const carteChargement = (
+    <div className="glass-panel rounded-3xl border border-white/5 p-8 sm:p-12 flex items-center justify-center gap-3 text-slate-500">
+      <Loader size={18} className="animate-spin" />
+      <span className="text-sm">{t.chargement}</span>
+    </div>
+  );
 
   const carteVide = (Icone: typeof Trophy, titre: string, texte: string) => (
     <div className="glass-panel rounded-3xl border border-white/5 p-8 sm:p-12 text-center">
@@ -302,13 +340,15 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
           </p>
           <p className="mt-2 flex items-baseline gap-2 text-white">
             <span className="font-serif text-5xl leading-none tabular-nums">{monTotal}</span>
-            <span className="text-sm text-slate-400">{monTotal === 1 ? t.point : t.points}</span>
+            <span className="text-sm text-slate-400">
+              {Math.abs(monTotal) === 1 ? t.point : t.points}
+            </span>
           </p>
           <p className="mt-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
             {t.monRang}
           </p>
           <p className="mt-1 text-lg text-emerald-400 tabular-nums">
-            {monRang > 0 ? `${monRang} / ${classement.length}` : t.horsClassement}
+            {rangAffiche}
           </p>
         </div>
 
@@ -328,7 +368,10 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-slate-500">{compte}</span>
                   </div>
-                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                  <div
+                    className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/5"
+                    aria-hidden="true"
+                  >
                     <div
                       className={`h-full rounded-full ${TEINTES[index % TEINTES.length]} transition-all duration-700`}
                       style={{ width: `${largeur}%` }}
@@ -352,6 +395,7 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
           <button
             key={cle}
             type="button"
+            aria-pressed={onglet === cle}
             onClick={() => setOnglet(cle)}
             className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
               onglet === cle
@@ -366,12 +410,7 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
       </nav>
 
       <div className="mt-6">
-        {chargement && (
-          <div className="glass-panel rounded-3xl border border-white/5 p-8 sm:p-12 flex items-center justify-center gap-3 text-slate-500">
-            <Loader size={18} className="animate-spin" />
-            <span className="text-sm">{t.chargement}</span>
-          </div>
-        )}
+        {chargement && carteChargement}
 
         {!chargement && erreur && carteVide(WifiOff, t.erreurTitre, t.erreurTexte)}
 
@@ -402,7 +441,9 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
 
         {!chargement && !erreur && onglet === 'journal' && (
           <>
-            {journal.length === 0 ? (
+            {journal === null ? (
+              carteChargement
+            ) : journal.length === 0 ? (
               carteVide(ScrollText, t.journalVideTitre, t.journalVideTexte)
             ) : (
               <ul className="space-y-2">
@@ -453,7 +494,11 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
                 </span>
                 <select
                   value={cible}
-                  onChange={(event) => setCible(event.target.value)}
+                  onChange={(event) => {
+                    setCible(event.target.value);
+                    setMessageForm(null);
+                    setErreurForm(null);
+                  }}
                   className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-200 transition-all focus:border-emerald-500/60 focus:outline-none"
                 >
                   <option value="">{t.champPersonneVide}</option>
@@ -494,13 +539,13 @@ const Engagement: React.FC<EngagementProps> = ({ language, uid, isAdmin = false 
                 <input
                   type="number"
                   value={valeur}
-                  min={-500}
-                  max={500}
+                  min={POINTS_MIN}
+                  max={POINTS_MAX}
                   onChange={(event) => setValeur(event.target.value)}
                   className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-slate-200 transition-all focus:border-emerald-500/60 focus:outline-none"
                 />
                 <span className="mt-1 block text-xs text-slate-600">
-                  {t.bareme} : {geste.points}
+                  {t.bareme} {geste.points}
                 </span>
               </label>
 

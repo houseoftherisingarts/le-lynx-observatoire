@@ -45,7 +45,7 @@ export interface MessageSoutien {
   id: string;
   auteurUid: string;
   auteurNom: string;
-  cotéEquipe: boolean;
+  coteEquipe: boolean;
   texte: string;
   creeLe: Timestamp | null;
 }
@@ -78,10 +78,12 @@ const millis = (ts: Timestamp | null): number => (ts ? ts.toMillis() : 0);
 export const ouvrirFil = async (profile: UserProfile): Promise<string> => {
   if (!profile?.uid) throw new Error('Identifiant manquant.');
   const ref = doc(db, 'soutien', profile.uid);
-  // Sur un document absent, la regle de lecture s'evalue sur un `resource` nul et
-  // rend un refus. Le refus se lit donc ici comme « le fil reste a creer ».
-  const deja = await getDoc(ref).catch(() => null);
-  if (deja && deja.exists()) return profile.uid;
+  // La lecture doit reussir avant toute ecriture : `setDoc` remplace le document
+  // en entier, et un refus avale par erreur effacerait le statut tenu par
+  // l'administration ainsi que les compteurs de non-lus. Une lecture qui echoue
+  // remonte donc a l'appelant au lieu d'ouvrir un fil par-dessus l'ancien.
+  const deja = await getDoc(ref);
+  if (deja.exists()) return profile.uid;
   await setDoc(ref, {
     uid: profile.uid,
     nom: nomCourt(profile.displayName),
@@ -138,7 +140,7 @@ export const ecrireAuSoutien = async (profile: UserProfile, texte: string): Prom
   await addDoc(collection(db, 'soutien', profile.uid, 'messages'), {
     auteurUid: profile.uid,
     auteurNom: nomCourt(profile.displayName),
-    cotéEquipe: false,
+    coteEquipe: false,
     texte: propre,
     creeLe: serverTimestamp(),
   });
@@ -164,7 +166,7 @@ export const repondreAuMembre = async (
   await addDoc(collection(db, 'soutien', uidMembre, 'messages'), {
     auteurUid: admin.uid,
     auteurNom: nomCourt(admin.displayName),
-    cotéEquipe: true,
+    coteEquipe: true,
     texte: propre,
     creeLe: serverTimestamp(),
   });
@@ -177,9 +179,9 @@ export const repondreAuMembre = async (
 };
 
 /** Remet a zero le compteur de non-lus d'un cote du fil. */
-export const marquerLuSoutien = async (uid: string, coté: CoteSoutien): Promise<void> => {
+export const marquerLuSoutien = async (uid: string, cote: CoteSoutien): Promise<void> => {
   if (!uid) return;
-  const champ = coté === 'equipe' ? 'nonLusEquipe' : 'nonLusMembre';
+  const champ = cote === 'equipe' ? 'nonLusEquipe' : 'nonLusMembre';
   await updateDoc(doc(db, 'soutien', uid), { [champ]: 0 });
 };
 

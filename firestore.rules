@@ -68,10 +68,17 @@ service cloud.firestore {
 
     match /badges/{userId} {
       allow read: if signedIn();
-      allow create: if isAdmin();
       // Chacun choisit ses badges de vitrine, personne ne s'accorde un badge.
+      allow create: if isAdmin()
+        || (isOwner(userId)
+            && !('obtenus' in request.resource.data)
+            && request.resource.data.exposes is list
+            && request.resource.data.exposes.size() <= 3);
       allow update: if isAdmin()
-        || (isOwner(userId) && touchesOnly(['exposes', 'maj']));
+        || (isOwner(userId)
+            && touchesOnly(['exposes', 'maj'])
+            && request.resource.data.exposes is list
+            && request.resource.data.exposes.size() <= 3);
       allow delete: if isAdmin();
     }
 

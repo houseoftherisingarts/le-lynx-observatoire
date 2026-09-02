@@ -59,6 +59,9 @@ const TEXTES = {
     filVideTitre: 'Choisissez un fil',
     filVideTexte:
       "La liste de gauche rassemble les personnes qui ont écrit à l'équipe. Sélectionnez un nom pour lire la conversation et répondre.",
+    filSansMessageTitre: 'Aucun message dans ce fil',
+    filSansMessageTexte:
+      "Cette personne a ouvert son fil sans encore écrire. Votre message sera le premier qu'elle y lira.",
     marquerTraite: 'Marquer traité',
     rouvrir: 'Rouvrir le fil',
     traite: 'Traité',
@@ -90,6 +93,9 @@ const TEXTES = {
     filVideTitre: 'Pick a thread',
     filVideTexte:
       'The list on the left holds the people who wrote to the team. Select a name to read the conversation and answer.',
+    filSansMessageTitre: 'No message in this thread',
+    filSansMessageTexte:
+      'This person opened their thread without writing yet. Your message will be the first one they read there.',
     marquerTraite: 'Mark as handled',
     rouvrir: 'Reopen thread',
     traite: 'Handled',
@@ -130,14 +136,14 @@ const EtatVide: React.FC<{ icone: React.ReactNode; titre: string; texte: string 
 
 const Bulles: React.FC<{
   messages: MessageSoutien[];
-  cotéEquipe: boolean;
+  coteEquipe: boolean;
   vide: React.ReactNode;
-}> = ({ messages, cotéEquipe, vide }) => (
+}> = ({ messages, coteEquipe, vide }) => (
   <>
     {messages.length === 0
       ? vide
       : messages.map((m) => {
-          const aMoi = m.cotéEquipe === cotéEquipe;
+          const aMoi = m.coteEquipe === coteEquipe;
           return (
             <div key={m.id} className={`flex ${aMoi ? 'justify-end' : 'justify-start'}`}>
               <div
@@ -284,6 +290,7 @@ const Soutien: React.FC<SoutienProps> = ({ language, isAdmin = false }) => {
     const propre = texte.trim();
     if (!propre || !profile || envoiEnCours) return;
     if (vueAdmin && !actif) return;
+    setErreur(false);
     setEnvoiEnCours(true);
     setTexte('');
     try {
@@ -298,6 +305,7 @@ const Soutien: React.FC<SoutienProps> = ({ language, isAdmin = false }) => {
   };
 
   const basculerStatut = async (fil: FilSoutien) => {
+    setErreur(false);
     try {
       await changerStatutFil(fil.id, fil.statut === 'traite' ? 'ouvert' : 'traite');
     } catch {
@@ -361,7 +369,7 @@ const Soutien: React.FC<SoutienProps> = ({ language, isAdmin = false }) => {
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             <Bulles
               messages={messages}
-              cotéEquipe={false}
+              coteEquipe={false}
               vide={
                 <EtatVide
                   icone={<Send size={36} strokeWidth={1.5} />}
@@ -501,12 +509,12 @@ const Soutien: React.FC<SoutienProps> = ({ language, isAdmin = false }) => {
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 <Bulles
                   messages={messages}
-                  cotéEquipe
+                  coteEquipe
                   vide={
                     <EtatVide
                       icone={<Send size={36} strokeWidth={1.5} />}
-                      titre={t.premierTitre}
-                      texte={t.premierTexte}
+                      titre={t.filSansMessageTitre}
+                      texte={t.filSansMessageTexte}
                     />
                   }
                 />

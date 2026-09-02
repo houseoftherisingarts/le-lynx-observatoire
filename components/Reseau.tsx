@@ -12,6 +12,11 @@ import Moderation from './social/Moderation';
 import CartesQuestions from './social/CartesQuestions';
 import PoserQuestion from './social/PoserQuestion';
 import Connexion from './social/Connexion';
+import Badges from './social/Badges';
+import Parrainage from './social/Parrainage';
+import Soutien from './social/Soutien';
+import Engagement from './social/Engagement';
+import { PanneauDirect } from './social/DirectEnCours';
 import BienvenueProfil from './social/BienvenueProfil';
 import { demanderAlliance } from '../services/dmService';
 import {
@@ -22,6 +27,10 @@ import {
   Images,
   ShieldAlert,
   MessageCircleQuestion,
+  Award,
+  UserPlus,
+  Flame,
+  LifeBuoy,
   Presentation,
   X,
   LogIn,
@@ -34,6 +43,10 @@ export type OngletReseau =
   | 'evenements'
   | 'galerie'
   | 'questions'
+  | 'badges'
+  | 'parrainage'
+  | 'engagement'
+  | 'soutien'
   | 'moderation';
 
 interface ReseauProps {
@@ -57,6 +70,10 @@ const TEXTES = {
       evenements: 'Rendez-vous',
       galerie: 'Galerie',
       questions: 'Questions',
+      badges: 'Badges',
+      parrainage: 'Parrainage',
+      engagement: 'Engagement',
+      soutien: 'Soutien',
       moderation: 'Modération',
     },
     connexionTitre: 'Le réseau demande un compte',
@@ -82,6 +99,10 @@ const TEXTES = {
       evenements: 'Events',
       galerie: 'Gallery',
       questions: 'Questions',
+      badges: 'Badges',
+      parrainage: 'Referrals',
+      engagement: 'Engagement',
+      soutien: 'Support',
       moderation: 'Moderation',
     },
     connexionTitre: 'The network needs an account',
@@ -104,6 +125,10 @@ const ONGLETS: Array<{ id: OngletReseau; icone: React.ElementType; adminSeulemen
   { id: 'evenements', icone: CalendarDays },
   { id: 'galerie', icone: Images },
   { id: 'questions', icone: MessageCircleQuestion },
+  { id: 'badges', icone: Award },
+  { id: 'parrainage', icone: UserPlus },
+  { id: 'engagement', icone: Flame },
+  { id: 'soutien', icone: LifeBuoy },
   { id: 'moderation', icone: ShieldAlert, adminSeulement: true },
 ];
 
@@ -288,8 +313,23 @@ const Reseau: React.FC<ReseauProps> = ({
         </div>
       )}
 
+      {onglet === 'badges' && (
+        <Badges language={language} uid={profile.uid} isAdmin={isAdmin} />
+      )}
+
+      {onglet === 'parrainage' && <Parrainage language={language} />}
+
+      {onglet === 'engagement' && (
+        <Engagement language={language} uid={profile.uid} isAdmin={isAdmin} />
+      )}
+
+      {onglet === 'soutien' && <Soutien language={language} isAdmin={isAdmin} />}
+
       {onglet === 'moderation' && isAdmin && (
-        <Moderation language={language} isAdmin={isAdmin} />
+        <div className="space-y-10">
+          <PanneauDirect language={language} />
+          <Moderation language={language} isAdmin={isAdmin} />
+        </div>
       )}
 
       {ficheOuverte && (

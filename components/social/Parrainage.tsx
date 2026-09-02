@@ -13,8 +13,10 @@ import { Language } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { avatarTone } from '../../services/socialService';
 import {
+  ErreurParrainage,
   FicheParrainage,
   LONGUEUR_CODE,
+  MotifParrainage,
   assurerCode,
   codeDepuisUrl,
   lienInvitation,
@@ -45,8 +47,6 @@ const TEXTES = {
       "Le code se crée au moment où vous ouvrez votre compte. Il vous suit ensuite partout dans l'Observatoire.",
     chargement: 'Préparation de votre code',
     erreur: 'Le parrainage ne se charge pas',
-    erreurDesc:
-      'La connexion au registre a été coupée. Rechargez la page dans un instant et le code reviendra tel quel.',
     monCode: 'Mon code',
     lienTitre: "Lien d'invitation",
     copier: 'Copier le lien',
@@ -59,16 +59,27 @@ const TEXTES = {
     aucunFilleulDesc:
       "Votre lien n'a encore été utilisé par personne. Envoyez-le à un voisin qui suit le dossier de loin.",
     listeTitre: 'Celles et ceux que vous avez amenés',
-    monParrainTitre: 'La personne qui vous a amené',
-    monParrainVide: 'Vous êtes arrivé par vos propres moyens',
+    monParrainTitre: 'La personne qui vous a transmis un code',
+    monParrainVide: "Personne n'est encore inscrit comme parrain",
     monParrainVideDesc:
       'Si quelqu’un vous a transmis un code, inscrivez-le ici. Cela ne se fait qu’une fois.',
     champLabel: 'Code reçu',
-    champAide: `Six caractères, sans les lettres I et O ni les chiffres 0 et 1.`,
+    champAide: 'Six caractères, sans les lettres I et O ni les chiffres 0 et 1.',
     valider: 'Inscrire ce code',
     validation: 'Vérification',
     inscrit: 'Le code est inscrit.',
     depuisLe: 'depuis le',
+    motifs: {
+      format: 'Un code compte six caractères. Vérifiez celui que vous avez reçu.',
+      inconnu: "Ce code n'existe pas dans le réseau.",
+      orphelin: "Ce code n'est rattaché à personne.",
+      sien: 'Ce code est le vôtre. Envoyez-le à une personne qui ne connaît pas encore le dossier.',
+      deja: 'Vous avez déjà un parrain, et cela ne se change pas.',
+      codeIndisponible:
+        "Votre code n'a pas pu être créé. Rechargez la page et il se formera au passage suivant.",
+      reseau:
+        'La connexion au registre a été coupée. Rechargez la page dans un instant et le code reviendra tel quel.',
+    },
   },
   en: {
     etiquette: 'Sponsorship',
@@ -80,8 +91,6 @@ const TEXTES = {
       'The code is created the moment you open your account. It then follows you everywhere in the Observatory.',
     chargement: 'Preparing your code',
     erreur: 'Sponsorship is not loading',
-    erreurDesc:
-      'The connection to the register was cut. Reload the page in a moment and the code will come back unchanged.',
     monCode: 'My code',
     lienTitre: 'Invitation link',
     copier: 'Copy the link',
@@ -95,7 +104,7 @@ const TEXTES = {
       'Your link has not been used by anyone yet. Send it to a neighbour who follows the file from a distance.',
     listeTitre: 'The people you brought in',
     monParrainTitre: 'The person who brought you in',
-    monParrainVide: 'You arrived on your own',
+    monParrainVide: 'No one is registered as your sponsor yet',
     monParrainVideDesc:
       'If someone passed you a code, enter it here. This happens only once.',
     champLabel: 'Code received',
@@ -104,10 +113,25 @@ const TEXTES = {
     validation: 'Checking',
     inscrit: 'The code is registered.',
     depuisLe: 'since',
+    motifs: {
+      format: 'A code holds six characters. Check the one you were given.',
+      inconnu: 'This code does not exist in the network.',
+      orphelin: 'This code belongs to nobody.',
+      sien: 'This code is yours. Send it to someone who does not know the file yet.',
+      deja: 'You already have a sponsor, and that does not change.',
+      codeIndisponible:
+        'Your code could not be created. Reload the page and it will be formed on the next pass.',
+      reseau:
+        'The connection to the register was cut. Reload the page in a moment and the code will come back unchanged.',
+    },
   },
 };
 
-type Textes = Record<keyof typeof TEXTES.fr, string>;
+type Textes = typeof TEXTES.fr;
+type Motif = MotifParrainage | 'reseau';
+
+const motifDe = (e: unknown): Motif =>
+  e instanceof ErreurParrainage ? e.motif : 'reseau';
 
 const ETIQUETTE = 'text-[10px] font-bold uppercase tracking-widest';
 
@@ -137,11 +161,11 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
 
   const [fiche, setFiche] = useState<FicheParrainage | null>(null);
   const [chargement, setChargement] = useState(true);
-  const [erreur, setErreur] = useState('');
+  const [erreur, setErreur] = useState<Motif | null>(null);
 
   const [saisie, setSaisie] = useState('');
   const [envoi, setEnvoi] = useState(false);
-  const [messageCode, setMessageCode] = useState('');
+  const [motifCode, setMotifCode] = useState<Motif | null>(null);
   const [succesCode, setSuccesCode] = useState(false);
 
   const [copie, setCopie] = useState<'lien' | 'code' | null>(null);
@@ -162,7 +186,7 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
 
     let vivant = true;
     setChargement(true);
-    setErreur('');
+    setErreur(null);
 
     const desabonner = suivreMonParrainage(
       profile.uid,
@@ -173,7 +197,8 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
       },
       (message) => {
         if (!vivant) return;
-        setErreur(message);
+        console.error('parrainage', message);
+        setErreur('reseau');
         setChargement(false);
       },
     );
@@ -186,7 +211,8 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
       })
       .catch((e: unknown) => {
         if (!vivant) return;
-        setErreur(e instanceof Error ? e.message : t.erreurDesc);
+        console.error('parrainage', e);
+        setErreur(motifDe(e));
         setChargement(false);
       });
 
@@ -194,7 +220,7 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
       vivant = false;
       desabonner();
     };
-  }, [profile, t.erreurDesc]);
+  }, [profile]);
 
   useEffect(
     () => () => {
@@ -220,7 +246,6 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
       } catch {
         // Le presse-papiers est refuse par le navigateur. Le lien reste
         // visible et selectionnable juste au-dessus du bouton.
-        setMessageCode('');
       }
     },
     [marquerCopie],
@@ -248,26 +273,27 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
       const propre = normaliserCode(saisie);
       if (!propre) {
         setSuccesCode(false);
-        setMessageCode(t.champAide);
+        setMotifCode('format');
         return;
       }
 
       setEnvoi(true);
-      setMessageCode('');
+      setMotifCode(null);
       try {
         await reclamerParrain(propre, profile);
         oublierCodeGarde();
         setSaisie('');
         setSuccesCode(true);
-        setMessageCode(t.inscrit);
+        setMotifCode(null);
       } catch (erreurCode: unknown) {
+        console.error('parrainage', erreurCode);
         setSuccesCode(false);
-        setMessageCode(erreurCode instanceof Error ? erreurCode.message : t.erreurDesc);
+        setMotifCode(motifDe(erreurCode));
       } finally {
         setEnvoi(false);
       }
     },
-    [envoi, profile, saisie, t.champAide, t.erreurDesc, t.inscrit],
+    [envoi, profile, saisie],
   );
 
   const entete = (
@@ -301,7 +327,7 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
           <AlertTriangle className="mx-auto h-8 w-8 text-red-400" aria-hidden="true" />
           <p className="mt-4 text-base font-semibold text-white">{t.erreur}</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-            {t.erreurDesc}
+            {t.motifs[erreur]}
           </p>
         </div>
       </div>
@@ -341,7 +367,7 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
             </p>
           </div>
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={() => void copier(lien, 'lien')}
@@ -431,12 +457,12 @@ const Parrainage: React.FC<ParrainageProps> = ({ language }) => {
                   {envoi ? t.validation : t.valider}
                 </button>
 
-                {messageCode && (
+                {(succesCode || motifCode) && (
                   <p
                     role="status"
                     className={`mt-3 text-sm leading-relaxed ${succesCode ? 'text-emerald-300' : 'text-red-300'}`}
                   >
-                    {messageCode}
+                    {succesCode ? t.inscrit : motifCode && t.motifs[motifCode]}
                   </p>
                 )}
               </form>
