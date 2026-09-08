@@ -17,7 +17,7 @@ import {
   BookOpen,
   X,
   Check
-} from 'lucide-react';
+, TreePine } from 'lucide-react';
 
 interface NavigationProps {
   currentView: ViewState;
@@ -81,6 +81,7 @@ const Navigation: React.FC<NavigationProps> = ({
       questions: 'Poser une question',
       news: 'Veille & Signaux',
       claims: 'Cartographie Claims',
+      aire: 'Aire protégée',
       archives: 'Historique',
       laws: 'Cadre Juridique',
       library: 'Bibliothèque',
@@ -97,6 +98,7 @@ const Navigation: React.FC<NavigationProps> = ({
       questions: 'Ask a question',
       news: 'Monitoring & Signals',
       claims: 'Claims Mapping',
+      aire: 'Protected area',
       archives: 'History',
       laws: 'Legal Framework',
       library: 'Library',
@@ -113,6 +115,7 @@ const Navigation: React.FC<NavigationProps> = ({
       questions: 'Ask a question',
       news: 'Monitoring & Signals',
       claims: 'Claims Mapping',
+      aire: 'Protected area',
       archives: 'History',
       laws: 'Legal Framework',
       library: 'Agindaasowigamig',
@@ -137,6 +140,7 @@ const Navigation: React.FC<NavigationProps> = ({
     { id: ViewState.RESEAU, label: t.reseau, icon: Network },
     { id: ViewState.NEWS, label: t.news, icon: Newspaper },
     { id: ViewState.CLAIMS, label: t.claims, icon: Map },
+    { id: ViewState.AIRE_PROTEGEE, label: t.aire, icon: TreePine },
     { id: ViewState.ARCHIVES, label: t.archives, icon: Archive },
     { id: ViewState.LAWS, label: t.laws, icon: Scale },
     { id: ViewState.LIBRARY, label: t.library, icon: BookOpen },

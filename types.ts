@@ -13,6 +13,7 @@ export enum ViewState {
   SUBMIT_PROJECT = 'SUBMIT_PROJECT',
   RESEAU = 'RESEAU',
   QUESTIONS = 'QUESTIONS',
+  AIRE_PROTEGEE = 'AIRE_PROTEGEE',
 }
 
 export type Language = 'fr' | 'en' | 'ani';

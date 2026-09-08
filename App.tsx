@@ -16,6 +16,7 @@ import DirectEnCours from './components/social/DirectEnCours';
 import AdminModules from './components/AdminModules';
 import CadreJuridique from './components/CadreJuridique';
 import Bibliotheque from './components/Bibliotheque';
+import AireProtegee from './components/AireProtegee';
 import PoserQuestion from './components/social/PoserQuestion';
 import Cloche from './components/social/Cloche';
 import { Map as MapIcon, Scale, Menu, ExternalLink, FileText, Lock, ShieldCheck, BookOpen, Download, Globe, X, HelpCircle, Monitor, Layers, RefreshCw, ZoomIn, Eye } from 'lucide-react';
@@ -175,6 +176,8 @@ const AppContent: React.FC = () => {
         return <CadreJuridique language={language} isAdmin={isAdmin} />;
       case ViewState.LIBRARY:
         return <Bibliotheque language={language} isAdmin={isAdmin} />;
+      case ViewState.AIRE_PROTEGEE:
+        return <AireProtegee language={language} setViewState={setView} />;
       default:
         return (
           <Dashboard 

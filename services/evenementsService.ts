@@ -54,6 +54,9 @@ export interface Evenement {
   auteurUid: string;
   auteurNom: string;
   rsvpCount: number;
+  /** Groupe (cellule) qui porte le rendez-vous, s'il y en a un. */
+  celluleId?: string;
+  celluleNom?: string;
   creeLe: Timestamp | null;
 }
 
@@ -66,6 +69,19 @@ export interface DonneesEvenement {
   startsAt: number;
   dateDisplay: string;
   type: TypeEvenement;
+  celluleId?: string;
+  celluleNom?: string;
+}
+
+/** Une action a prendre pendant ou avant le rendez-vous : pancartes, covoiturage, tracts. */
+export interface Tache {
+  id: string;
+  titre: string;
+  /** Nombre de personnes qu'il faut. */
+  places: number;
+  benevoleUids: string[];
+  benevoleNoms: string[];
+  creeLe: Timestamp | null;
 }
 
 export interface Rsvp {
@@ -103,6 +119,8 @@ const MAX = {
   dateDisplay: 80,
   nom: 120,
   plusUn: 20,
+  tache: 120,
+  places: 200,
 };
 
 const couper = (valeur: unknown, max: number): string =>
@@ -126,6 +144,8 @@ const nettoyer = (data: DonneesEvenement) => {
     startsAt: Math.round(debut),
     dateDisplay: couper(data.dateDisplay, MAX.dateDisplay),
     type: estType(data.type) ? data.type : ('autre' as TypeEvenement),
+    celluleId: couper(data.celluleId, 80),
+    celluleNom: couper(data.celluleNom, MAX.nom),
   };
 };
 
@@ -161,6 +181,8 @@ export const suivreEvenements = (
           auteurUid: String(brut.auteurUid ?? ''),
           auteurNom: String(brut.auteurNom ?? ''),
           rsvpCount: Number(brut.rsvpCount ?? 0),
+          celluleId: brut.celluleId ? String(brut.celluleId) : undefined,
+          celluleNom: brut.celluleNom ? String(brut.celluleNom) : undefined,
           creeLe: (brut.creeLe as Timestamp) ?? null,
         };
         if (ev.startsAt >= maintenant) aVenir.push(ev);
@@ -274,6 +296,77 @@ export const repondrePresence = async (
   if (delta !== 0) {
     await updateDoc(doc(db, 'events', evenementId), { rsvpCount: increment(delta) });
   }
+};
+
+// --- Actions du rendez-vous -------------------------------------------------
+
+export const suivreTaches = (
+  evenementId: string,
+  cb: (taches: Tache[]) => void,
+  onErreur?: (e: unknown) => void
+): Unsubscribe =>
+  onSnapshot(
+    query(collection(db, 'events', evenementId, 'taches'), orderBy('creeLe', 'asc'), limit(50)),
+    (snap) =>
+      cb(
+        snap.docs.map((d) => {
+          const brut = d.data() as Partial<Tache>;
+          return {
+            id: d.id,
+            titre: String(brut.titre ?? ''),
+            places: Math.max(1, Number(brut.places ?? 1)),
+            benevoleUids: Array.isArray(brut.benevoleUids) ? brut.benevoleUids.map(String) : [],
+            benevoleNoms: Array.isArray(brut.benevoleNoms) ? brut.benevoleNoms.map(String) : [],
+            creeLe: (brut.creeLe as Timestamp) ?? null,
+          };
+        })
+      ),
+    (e) => onErreur?.(e)
+  );
+
+/** Seul l'auteur du rendez-vous (ou l'administration) ajoute une action. */
+export const ajouterTache = async (
+  evenementId: string,
+  titre: string,
+  places: number
+): Promise<string> => {
+  const propre = couper(titre, MAX.tache);
+  if (!propre) throw new Error("L'action a besoin d'un titre.");
+  const ref = await addDoc(collection(db, 'events', evenementId, 'taches'), {
+    titre: propre,
+    places: Math.min(MAX.places, Math.max(1, Math.round(Number(places) || 1))),
+    benevoleUids: [],
+    benevoleNoms: [],
+    creeLe: serverTimestamp(),
+  });
+  return ref.id;
+};
+
+export const supprimerTache = async (evenementId: string, tacheId: string): Promise<void> => {
+  await deleteDoc(doc(db, 'events', evenementId, 'taches', tacheId));
+};
+
+/**
+ * La personne se porte volontaire ou se retire. Les deux listes avancent
+ * ensemble : les regles n'autorisent un membre qu'a toucher ces deux cles.
+ */
+export const basculerBenevole = async (
+  evenementId: string,
+  tache: Tache,
+  personne: Personne,
+  prendre: boolean
+): Promise<void> => {
+  const uids = tache.benevoleUids.filter((u) => u !== personne.uid);
+  const noms = tache.benevoleNoms.filter((_, i) => tache.benevoleUids[i] !== personne.uid);
+  if (prendre) {
+    if (uids.length >= tache.places) throw new Error('Toutes les places sont prises.');
+    uids.push(personne.uid);
+    noms.push(couper(personne.nom, MAX.nom) || 'Membre');
+  }
+  await updateDoc(doc(db, 'events', evenementId, 'taches', tache.id), {
+    benevoleUids: uids,
+    benevoleNoms: noms,
+  });
 };
 
 // --- Calendrier -------------------------------------------------------------

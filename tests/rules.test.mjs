@@ -117,6 +117,17 @@ verifier('une cellule se fonde', () => assertSucceeds(setDoc(doc(alex, 'cellules
 verifier('un membre rejoint sans toucher au reste', () => assertSucceeds(updateDoc(doc(bea, 'cellules', 'c1'), { membreUids: [ALEX, BEA], nbMembres: 2 })));
 verifier('un membre ne renomme pas la cellule d’un autre', () => assertFails(updateDoc(doc(bea, 'cellules', 'c1'), { nom: 'Détournée' })));
 
+// --- Rendez-vous et leurs actions -------------------------------------------
+const rendezVous = { title: 'Conseil de Lac-des-Plages', description: '', lieu: 'Hôtel de ville', startsAt: 1790000000000, dateDisplay: '', type: 'conseil', auteurUid: ALEX, auteurNom: 'Alex', rsvpCount: 0, celluleId: 'c1', celluleNom: 'Cellule de Duhamel', creeLe: serverTimestamp() };
+verifier('un membre inscrit un rendez-vous', () => assertSucceeds(setDoc(doc(alex, 'events', 'e1'), rendezVous)));
+verifier('un passant lit le rendez-vous', () => assertSucceeds(getDoc(doc(passant, 'events', 'e1'))));
+verifier('l’auteur pose une action', () => assertSucceeds(setDoc(doc(alex, 'events', 'e1', 'taches', 't1'), { titre: 'Apporter des pancartes', places: 4, benevoleUids: [], benevoleNoms: [], creeLe: serverTimestamp() })));
+verifier('un autre membre ne pose pas d’action sur ce rendez-vous', () => assertFails(setDoc(doc(bea, 'events', 'e1', 'taches', 't2'), { titre: 'Détournée', places: 1, benevoleUids: [], benevoleNoms: [], creeLe: serverTimestamp() })));
+verifier('un membre se porte volontaire', () => assertSucceeds(updateDoc(doc(bea, 'events', 'e1', 'taches', 't1'), { benevoleUids: [BEA], benevoleNoms: ['Béa'] })));
+verifier('un membre ne change pas le nombre de places', () => assertFails(updateDoc(doc(bea, 'events', 'e1', 'taches', 't1'), { places: 1 })));
+verifier('un passant ne se porte pas volontaire', () => assertFails(updateDoc(doc(passant, 'events', 'e1', 'taches', 't1'), { benevoleUids: ['x'], benevoleNoms: ['x'] })));
+verifier('l’auteur retire une action', () => assertSucceeds(deleteDoc(doc(alex, 'events', 'e1', 'taches', 't1'))));
+
 // --- Questions du public ------------------------------------------------------
 verifier('un passant pose une question', () => assertSucceeds(addDoc(collection(passant, 'questions'), { name: 'Mireille', question: 'Où en est le dossier au BAPE ?', status: 'pending', upvotes: 0, upvoterIds: [], createdAt: serverTimestamp() })));
 verifier('personne ne s’auto-approuve', () => assertFails(addDoc(collection(passant, 'questions'), { name: 'X', question: 'Truc', status: 'approved', upvotes: 0, upvoterIds: [] })));

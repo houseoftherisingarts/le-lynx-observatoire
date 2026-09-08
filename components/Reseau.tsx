@@ -60,11 +60,11 @@ const TEXTES = {
     surtitre: 'Le réseau',
     titre: 'Les gens de la lutte',
     intro:
-      "L'Observatoire n'est pas seulement un tableau de bord. Les personnes qui tiennent la ligne s'y retrouvent, s'y écrivent, s'organisent en cellules et se donnent rendez-vous.",
+      "L'Observatoire n'est pas seulement un tableau de bord. Les personnes qui tiennent la ligne s'y retrouvent, s'y écrivent, s'organisent en groupes et se donnent rendez-vous.",
     onglets: {
       annuaire: 'Annuaire',
       messagerie: 'Messages',
-      cellules: 'Cellules',
+      cellules: 'Groupes',
       evenements: 'Rendez-vous',
       galerie: 'Galerie',
       questions: 'Questions',
@@ -75,7 +75,7 @@ const TEXTES = {
     },
     connexionTitre: 'Le réseau demande un compte',
     connexionTexte:
-      "Le mur, les messages et les cellules appartiennent aux personnes qui portent la lutte. La connexion se fait avec un compte Google, et votre fiche se crée toute seule au premier passage.",
+      "Le mur, les messages et les groupes appartiennent aux personnes qui portent la lutte. La connexion se fait avec un compte Google, et votre fiche se crée toute seule au premier passage.",
     connexion: 'Se connecter',
     connexionEnCours: 'Connexion en cours',
     maFiche: 'Ma fiche',
@@ -92,7 +92,7 @@ const TEXTES = {
     onglets: {
       annuaire: 'Directory',
       messagerie: 'Messages',
-      cellules: 'Cells',
+      cellules: 'Groups',
       evenements: 'Events',
       galerie: 'Gallery',
       questions: 'Questions',
@@ -103,7 +103,7 @@ const TEXTES = {
     },
     connexionTitre: 'The network needs an account',
     connexionTexte:
-      'The wall, the messages and the cells belong to the people carrying the fight. Sign in with a Google account, and your card is created on your first visit.',
+      'The wall, the messages and the groups belong to the people carrying the fight. Sign in with a Google account, and your card is created on your first visit.',
     connexion: 'Sign in',
     connexionEnCours: 'Signing in',
     maFiche: 'My card',

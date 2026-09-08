@@ -4,7 +4,7 @@ import { AuthState, Language, CalmPost } from '../types';
 import { subscribeToCalmPosts, createCalmPost, CalmEntry } from '../services/socialService';
 import { collection, doc, onSnapshot, query, orderBy, limit, where } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
-import { Users, AlertTriangle, Activity, Droplets, ChevronDown, CheckCircle, Target, Shield, Clock, AlertOctagon, ExternalLink, X, Phone, FileText, Feather, ArrowRight, Hand, PenTool, BookOpen, HelpCircle, Eye, Share2, Facebook, Instagram, Twitter, Check, Copy, RefreshCw, Loader, Download, Smartphone, Map, Lock, Unlock, Plus, Edit3 } from 'lucide-react';
+import { Users, AlertTriangle, Activity, Droplets, ChevronDown, CheckCircle, Target, Shield, Clock, AlertOctagon, ExternalLink, X, Phone, FileText, Feather, ArrowRight, Hand, PenTool, BookOpen, HelpCircle, Eye, Share2, Facebook, Instagram, Twitter, Check, Copy, RefreshCw, Loader, Download, Smartphone, Map, Lock, Unlock, Plus, Edit3, TreePine } from 'lucide-react';
 
 interface DashboardProps {
     authState: AuthState;
@@ -786,6 +786,30 @@ const Dashboard: React.FC<DashboardProps> = ({ authState, setViewState, onNaviga
                  {t.whatIsText}
               </p>
            </div>
+        </section>
+
+        {/* DOSSIER AIRE PROTÉGÉE */}
+        <section
+          onClick={() => setViewState('AIRE_PROTEGEE')}
+          className="glass-card rounded-[32px] p-6 md:p-8 border border-emerald-500/20 bg-gradient-to-r from-emerald-950/40 to-transparent flex flex-col md:flex-row md:items-center gap-5 cursor-pointer group hover:border-emerald-500/40 transition-all"
+        >
+          <div className="p-3 bg-emerald-500/15 rounded-2xl text-emerald-400 shrink-0 border border-emerald-500/20 w-fit">
+            <TreePine size={24} strokeWidth={1.5} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-1">{language === 'fr' ? 'Nouveau dossier' : 'New file'}</p>
+            <h3 className="text-xl md:text-2xl font-serif text-white leading-snug mb-2">
+              {language === 'fr' ? "L'aire protégée de 115 km², le contre-plan de la Petite-Nation" : 'The 115 km² protected area, the Petite-Nation counter-plan'}
+            </h3>
+            <p className="text-sm text-slate-400 font-light leading-relaxed">
+              {language === 'fr'
+                ? "Ce que le statut interdit vraiment, qui porte le projet, et pourquoi les claims de La Loutre doivent tomber avant que Québec puisse désigner le territoire."
+                : 'What the status really forbids, who carries the project, and why the La Loutre claims must fall before Québec can designate the territory.'}
+            </p>
+          </div>
+          <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-2 group-hover:gap-3 transition-all shrink-0">
+            {language === 'fr' ? 'Lire le dossier' : 'Read the file'} <ArrowRight size={14} />
+          </span>
         </section>
 
         {/* Narrative Context Card (New) */}

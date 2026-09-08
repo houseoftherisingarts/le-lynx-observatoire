@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Users, Plus, Lock, Unlock, X, Send, MapPin, Tag, Check, LogOut, Loader, ShieldAlert, MessageCircle } from 'lucide-react';
+import { Users, Plus, Lock, Unlock, X, Send, MapPin, Tag, Check, LogOut, Loader, ShieldAlert, MessageCircle, CalendarDays } from 'lucide-react';
+import Evenements from './Evenements';
 import { Language } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -34,54 +35,56 @@ interface CellulesProps {
 
 const T = {
     fr: {
-        etiquette: 'Cellules locales', titre: 'Les comités de la lutte',
-        intro: "Chaque cellule regroupe des gens d'une même municipalité ou d'un même métier. Vous entrez dans celle qui vous ressemble et vous y trouvez le travail en cours.",
-        fonder: 'Fonder une cellule', rejoindre: 'Rejoindre', demander: 'Demander à entrer', ouvrir: 'Ouvrir',
+        etiquette: 'Groupes de résistance', titre: 'Les groupes de la lutte',
+        intro: "Chaque groupe rassemble des gens d'une même municipalité, d'un même lac ou d'un même métier. Vous entrez dans celui qui vous ressemble, vous y trouvez le travail en cours et vous y donnez rendez-vous.",
+        fonder: 'Fonder un groupe', rejoindre: 'Rejoindre', demander: 'Demander à entrer', ouvrir: 'Ouvrir',
         enAttente: 'Demande envoyée', ouverte: 'Ouverte', fermee: 'Sur demande', membres: 'membres',
-        videTitre: 'Aucune cellule pour le moment',
-        videTexte: "La première cellule reste à fonder. Vous lui donnez un nom, une municipalité ou un thème, et les gens du secteur la verront apparaître ici.",
+        videTitre: 'Aucun groupe pour le moment',
+        videTexte: "Le premier groupe reste à fonder. Vous lui donnez un nom, une municipalité ou un thème, et les gens du secteur le verront apparaître ici.",
         connexionTitre: 'Connexion requise',
-        connexionTexte: 'Les cellules se rejoignent avec un compte. Connectez-vous pour entrer dans un comité.',
+        connexionTexte: 'Les groupes se rejoignent avec un compte. Connectez-vous pour entrer dans un groupe.',
         erreurTitre: 'Lecture impossible',
-        erreurTexte: 'Les cellules ne se chargent pas en ce moment. Rechargez la page dans un instant.',
-        absenteTitre: 'Cellule introuvable',
-        absenteTexte: "Cette cellule a été fermée ou son accès vous est refusé. Revenez à la liste pour en choisir une autre.",
+        erreurTexte: 'Les groupes ne se chargent pas en ce moment. Rechargez la page dans un instant.',
+        absenteTitre: 'Groupe introuvable',
+        absenteTexte: "Ce groupe a été fermé ou son accès vous est refusé. Revenez à la liste pour en choisir un autre.",
         retour: 'Revenir à la liste',
         actionRatee: "Le geste n'a pas passé. Réessayez dans un instant.",
         retirer: 'Retirer la demande', statutAcceptee: 'Acceptée', statutRefusee: 'Refusée',
-        formTitre: 'Fonder une cellule', nom: 'Nom de la cellule', municipalite: 'Municipalité', theme: 'Thème',
-        description: 'Ce que la cellule fait', acces: 'Accès', accesOuvert: 'Ouverte à tous', accesDemande: 'Sur demande',
-        creer: 'Créer la cellule', annuler: 'Annuler', motTitre: 'Votre mot au fondateur',
-        motTexte: 'Dites en quelques lignes ce que vous venez faire dans cette cellule.',
-        envoyerDemande: 'Envoyer la demande', listeMembres: 'Membres', fondateur: 'Fondateur', fil: 'Fil de la cellule',
+        formTitre: 'Fonder un groupe', nom: 'Nom du groupe', municipalite: 'Municipalité', theme: 'Thème',
+        description: 'Ce que le groupe fait', acces: 'Accès', accesOuvert: 'Ouvert à tous', accesDemande: 'Sur demande',
+        creer: 'Créer le groupe', annuler: 'Annuler', motTitre: 'Votre mot au fondateur',
+        motTexte: 'Dites en quelques lignes ce que vous venez faire dans ce groupe.',
+        envoyerDemande: 'Envoyer la demande', listeMembres: 'Membres', fondateur: 'Fondateur', fil: 'Fil du groupe',
         filVide: "Le fil est vide. Le premier message donne le ton et dit ce qui s'en vient.",
-        ecrire: 'Écrire dans la cellule', demandes: 'Demandes en attente', aucuneDemande: 'Aucune demande en attente.',
-        accepter: 'Accepter', refuser: 'Refuser', quitter: 'Quitter la cellule',
+        ecrire: 'Écrire dans le groupe', demandes: 'Demandes en attente', aucuneDemande: 'Aucune demande en attente.',
+        accepter: 'Accepter', refuser: 'Refuser', quitter: 'Quitter le groupe',
+        rendezVous: 'Les rendez-vous du groupe',
     },
     en: {
-        etiquette: 'Local cells', titre: 'The committees of the fight',
-        intro: 'Each cell gathers people from one municipality or one trade. You join the one that fits you and you find the work under way.',
-        fonder: 'Found a cell', rejoindre: 'Join', demander: 'Ask to join', ouvrir: 'Open',
+        etiquette: 'Resistance groups', titre: 'The groups of the fight',
+        intro: 'Each group gathers people from one municipality, one lake or one trade. You join the one that fits you, you find the work under way and you set your gatherings there.',
+        fonder: 'Found a group', rejoindre: 'Join', demander: 'Ask to join', ouvrir: 'Open',
         enAttente: 'Request sent', ouverte: 'Open', fermee: 'By request', membres: 'members',
-        videTitre: 'No cell yet',
-        videTexte: 'The first cell is still to be founded. You give it a name, a municipality or a theme, and people nearby will see it appear here.',
+        videTitre: 'No group yet',
+        videTexte: 'The first group is still to be founded. You give it a name, a municipality or a theme, and people nearby will see it appear here.',
         connexionTitre: 'Account required',
-        connexionTexte: 'Cells are joined with an account. Sign in to enter a committee.',
+        connexionTexte: 'Groups are joined with an account. Sign in to enter a group.',
         erreurTitre: 'Cannot load',
-        erreurTexte: 'The cells are not loading right now. Reload the page in a moment.',
-        absenteTitre: 'Cell not found',
-        absenteTexte: 'This cell was closed or its access is denied to you. Go back to the list to pick another one.',
+        erreurTexte: 'The groups are not loading right now. Reload the page in a moment.',
+        absenteTitre: 'Group not found',
+        absenteTexte: 'This group was closed or its access is denied to you. Go back to the list to pick another one.',
         retour: 'Back to the list',
         actionRatee: 'That did not go through. Try again in a moment.',
         retirer: 'Remove the request', statutAcceptee: 'Accepted', statutRefusee: 'Declined',
-        formTitre: 'Found a cell', nom: 'Name of the cell', municipalite: 'Municipality', theme: 'Theme',
-        description: 'What the cell does', acces: 'Access', accesOuvert: 'Open to all', accesDemande: 'By request',
-        creer: 'Create the cell', annuler: 'Cancel', motTitre: 'Your word to the founder',
-        motTexte: 'Say in a few lines what you come to do in this cell.',
-        envoyerDemande: 'Send the request', listeMembres: 'Members', fondateur: 'Founder', fil: 'Cell thread',
+        formTitre: 'Found a group', nom: 'Name of the group', municipalite: 'Municipality', theme: 'Theme',
+        description: 'What the group does', acces: 'Access', accesOuvert: 'Open to all', accesDemande: 'By request',
+        creer: 'Create the group', annuler: 'Cancel', motTitre: 'Your word to the founder',
+        motTexte: 'Say in a few lines what you come to do in this group.',
+        envoyerDemande: 'Send the request', listeMembres: 'Members', fondateur: 'Founder', fil: 'Group thread',
         filVide: 'The thread is empty. The first message sets the tone and says what is coming.',
-        ecrire: 'Write in the cell', demandes: 'Pending requests', aucuneDemande: 'No pending request.',
-        accepter: 'Accept', refuser: 'Decline', quitter: 'Leave the cell',
+        ecrire: 'Write in the group', demandes: 'Pending requests', aucuneDemande: 'No pending request.',
+        accepter: 'Accept', refuser: 'Decline', quitter: 'Leave the group',
+        rendezVous: 'The group\'s gatherings',
     },
 };
 
@@ -571,6 +574,11 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                                     </div>
                                 )}
                             </div>
+                        </div>
+
+                        <div className="px-6 md:px-8 pb-8 border-t border-white/5 pt-6">
+                            <span className={`${etiquetteClasse} text-slate-500 flex items-center gap-2 mb-4`}><CalendarDays size={12} /> {t.rendezVous}</span>
+                            <Evenements language={language} isAdmin={isAdmin} cellule={{ id: detail.id, nom: detail.nom }} />
                         </div>
                     </div>
                 </div>

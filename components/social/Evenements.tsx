@@ -1,19 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, CalendarDays, CalendarPlus, Check, ChevronDown, Download,
-  Loader2, MapPin, Plus, Trash2, Users, X,
+  HandHelping, ListChecks, Loader2, MapPin, Network, Plus, Trash2, Users, X,
 } from 'lucide-react';
 import { Language } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Evenement, ListeEvenements, Rsvp, TYPES_EVENEMENT, TypeEvenement,
-  creerEvenement, lienCalendrier, repondrePresence, suivreEvenements,
-  suivreRsvps, supprimerEvenement,
+  Evenement, ListeEvenements, Rsvp, TYPES_EVENEMENT, Tache, TypeEvenement,
+  ajouterTache, basculerBenevole, creerEvenement, lienCalendrier, repondrePresence,
+  suivreEvenements, suivreRsvps, suivreTaches, supprimerEvenement, supprimerTache,
 } from '../../services/evenementsService';
+import { Cellule, suivreCellules } from '../../services/cellulesService';
 
 interface EvenementsProps {
   language: Language;
   isAdmin?: boolean;
+  /** Quand la vue vit dans un groupe, seuls ses rendez-vous s'affichent. */
+  cellule?: { id: string; nom: string };
 }
 
 const TEXTES = {
@@ -38,6 +41,12 @@ const TEXTES = {
     fDescription: 'Description', publier: 'Publier', envoi: 'Envoi', annuler: 'Annuler',
     champsManquants: 'Le titre, la date et le lieu sont obligatoires.',
     echec: "L'enregistrement a échoué. Réessayez dans un moment.",
+    actions: 'Actions à prendre', aucuneAction: "Aucune action n'est encore prévue pour ce rendez-vous.",
+    prendre: "Je m'en charge", retirer: 'Je me retire', complet: 'Complet', place: 'place', places: 'places',
+    ajouterAction: 'Ajouter une action', fActionTitre: "Ce qu'il faut faire", fPlaces: 'Personnes',
+    supprimerAction: "Retirer l'action", actionsForm: 'Actions à prendre (facultatif)',
+    actionsAide: "Dites ce qu'il faut apporter, conduire ou distribuer, et les gens prendront ce qu'ils peuvent.",
+    fGroupe: 'Porté par un groupe', sansGroupe: 'Aucun groupe', groupe: 'Groupe',
     types: {
       assemblee: 'Assemblée', conseil: 'Conseil municipal', manifestation: 'Manifestation',
       atelier: 'Atelier', juridique: 'Juridique', autre: 'Autre',
@@ -64,6 +73,12 @@ const TEXTES = {
     fDescription: 'Description', publier: 'Publish', envoi: 'Sending', annuler: 'Cancel',
     champsManquants: 'Title, date and place are required.',
     echec: 'Saving failed. Try again in a moment.',
+    actions: 'Actions to take', aucuneAction: 'No action is planned for this gathering yet.',
+    prendre: "I'll take it", retirer: 'Step back', complet: 'Full', place: 'spot', places: 'spots',
+    ajouterAction: 'Add an action', fActionTitre: 'What needs doing', fPlaces: 'People',
+    supprimerAction: 'Remove the action', actionsForm: 'Actions to take (optional)',
+    actionsAide: 'Say what needs to be brought, driven or handed out, and people will take what they can.',
+    fGroupe: 'Carried by a group', sansGroupe: 'No group', groupe: 'Group',
     types: {
       assemblee: 'Assembly', conseil: 'Town council', manifestation: 'Demonstration',
       atelier: 'Workshop', juridique: 'Legal', autre: 'Other',
@@ -116,7 +131,7 @@ const Champ: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
 
 // --- Vue principale ---------------------------------------------------------
 
-const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
+const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin, cellule }) => {
   const t = TEXTES[language === 'fr' ? 'fr' : 'en'];
   const locale = language === 'fr' ? 'fr-CA' : 'en-CA';
   const { profile } = useAuth();
@@ -132,11 +147,16 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
 
   useEffect(() => {
     const desabonner = suivreEvenements(
-      (l) => { setListe(l); setChargement(false); setErreur(false); },
+      (l) => {
+        const garder = (ev: Evenement) => !cellule || ev.celluleId === cellule.id;
+        setListe({ aVenir: l.aVenir.filter(garder), passes: l.passes.filter(garder) });
+        setChargement(false);
+        setErreur(false);
+      },
       () => { setChargement(false); setErreur(true); }
     );
     return () => desabonner();
-  }, []);
+  }, [cellule?.id]);
 
   useEffect(() => {
     const minuterie = window.setInterval(() => setMaintenant(Date.now()), 60000);
@@ -156,11 +176,15 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
   return (
     <div className="animate-fade-in space-y-8">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-2xl">
-          <p className={`${ETIQUETTE} text-emerald-400`}>{t.surtitre}</p>
-          <h2 className="mt-2 font-serif text-3xl text-white md:text-4xl">{t.titre}</h2>
-          <p className="mt-3 text-sm leading-relaxed text-slate-400">{t.intro}</p>
-        </div>
+        {cellule ? (
+          <p className="max-w-2xl text-sm leading-relaxed text-slate-400">{t.intro}</p>
+        ) : (
+          <div className="max-w-2xl">
+            <p className={`${ETIQUETTE} text-emerald-400`}>{t.surtitre}</p>
+            <h2 className="mt-2 font-serif text-3xl text-white md:text-4xl">{t.titre}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-400">{t.intro}</p>
+          </div>
+        )}
         <button type="button" onClick={() => setModaleOuverte(true)} className="inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-300 transition-all hover:border-emerald-500/60 hover:bg-emerald-500/20">
           <Plus className="h-4 w-4" />
           {t.inscrire}
@@ -230,7 +254,7 @@ const Evenements: React.FC<EvenementsProps> = ({ language, isAdmin }) => {
           )}
         </section>
       )}
-      {modaleOuverte && <ModaleEvenement t={t} locale={locale} onFermer={() => setModaleOuverte(false)} />}
+      {modaleOuverte && <ModaleEvenement t={t} locale={locale} cellule={cellule} onFermer={() => setModaleOuverte(false)} />}
     </div>
   );
 };
@@ -311,6 +335,11 @@ const CarteEvenement: React.FC<CarteProps> = ({
             <span className="rounded-full border border-white/5 bg-white/[0.03] px-2.5 py-1 text-[11px] text-slate-400">
               {compteARebours(evenement.startsAt, maintenant, t)}
             </span>
+            {evenement.celluleNom && (
+              <span className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[11px] text-sky-300">
+                <Network className="h-3 w-3 shrink-0" /> <span className="truncate">{evenement.celluleNom}</span>
+              </span>
+            )}
             {peutSupprimer && (
               <button type="button" onClick={onSupprimer} title={t.supprimer} aria-label={t.supprimer} className="ml-auto rounded-full border border-white/5 p-2 text-slate-500 transition-all hover:border-red-500/30 hover:text-red-400">
                 <Trash2 className="h-3.5 w-3.5" />
@@ -329,6 +358,7 @@ const CarteEvenement: React.FC<CarteProps> = ({
           {evenement.description && (
             <p className="mt-3 break-words text-sm leading-relaxed text-slate-400">{evenement.description}</p>
           )}
+          <Actions evenement={evenement} t={t} peutGerer={peutSupprimer} />
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
@@ -380,13 +410,134 @@ const CarteEvenement: React.FC<CarteProps> = ({
   );
 };
 
+// --- Actions d'un rendez-vous ------------------------------------------------
+
+const Actions: React.FC<{ evenement: Evenement; t: Textes; peutGerer: boolean }> = ({ evenement, t, peutGerer }) => {
+  const { profile } = useAuth();
+  const [taches, setTaches] = useState<Tache[]>([]);
+  const [ajout, setAjout] = useState(false);
+  const [titre, setTitre] = useState('');
+  const [places, setPlaces] = useState(2);
+  const [occupe, setOccupe] = useState<string | null>(null);
+
+  useEffect(() => suivreTaches(evenement.id, setTaches, () => setTaches([])), [evenement.id]);
+
+  if (taches.length === 0 && !peutGerer) return null;
+
+  const basculer = async (tache: Tache) => {
+    if (!profile || occupe) return;
+    const jePrends = tache.benevoleUids.includes(profile.uid);
+    setOccupe(tache.id);
+    try {
+      await basculerBenevole(evenement.id, tache, { uid: profile.uid, nom: profile.displayName }, !jePrends);
+    } catch {
+      // L'abonnement garde l'etat reel.
+    } finally {
+      setOccupe(null);
+    }
+  };
+
+  const ajouter = async () => {
+    if (!titre.trim() || occupe) return;
+    setOccupe('ajout');
+    try {
+      await ajouterTache(evenement.id, titre, places);
+      setTitre('');
+      setPlaces(2);
+      setAjout(false);
+    } catch {
+      // Le formulaire reste ouvert, la personne peut reessayer.
+    } finally {
+      setOccupe(null);
+    }
+  };
+
+  return (
+    <div className="mt-4 rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className={`${ETIQUETTE} flex items-center gap-2 text-slate-400`}>
+          <ListChecks className="h-3.5 w-3.5 text-emerald-400" /> {t.actions} · {taches.length}
+        </p>
+        {peutGerer && !ajout && (
+          <button type="button" onClick={() => setAjout(true)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300">
+            <Plus className="h-3 w-3" /> {t.ajouterAction}
+          </button>
+        )}
+      </div>
+      {taches.length === 0 && !ajout && <p className="mt-2 text-xs text-slate-500">{t.aucuneAction}</p>}
+      <ul className="mt-3 space-y-2">
+        {taches.map((tache) => {
+          const pris = tache.benevoleUids.length;
+          const jePrends = !!profile && tache.benevoleUids.includes(profile.uid);
+          const complet = pris >= tache.places;
+          return (
+            <li key={tache.id} className="flex flex-col gap-2 rounded-xl border border-white/5 bg-black/30 px-4 py-3 md:flex-row md:items-center">
+              <div className="min-w-0 flex-1">
+                <p className="break-words text-sm text-slate-200">{tache.titre}</p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {pris}/{tache.places} {tache.places > 1 ? t.places : t.place}
+                  {tache.benevoleNoms.length > 0 && <span className="text-slate-400"> · {tache.benevoleNoms.join(', ')}</span>}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {profile && (jePrends || !complet) && (
+                  <button
+                    type="button"
+                    onClick={() => basculer(tache)}
+                    disabled={occupe === tache.id}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[11px] font-semibold transition-all disabled:opacity-50 ${
+                      jePrends ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'bg-emerald-500 text-black hover:bg-emerald-400'
+                    }`}
+                  >
+                    <HandHelping className="h-3 w-3" /> {jePrends ? t.retirer : t.prendre}
+                  </button>
+                )}
+                {!jePrends && complet && <span className={`${ETIQUETTE} text-slate-500`}>{t.complet}</span>}
+                {peutGerer && (
+                  <button type="button" onClick={() => supprimerTache(evenement.id, tache.id).catch(() => undefined)} title={t.supprimerAction} aria-label={t.supprimerAction} className="rounded-full border border-white/5 p-1.5 text-slate-600 hover:border-red-500/30 hover:text-red-400">
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {ajout && (
+        <div className="mt-3 flex flex-col gap-2 md:flex-row">
+          <input value={titre} maxLength={120} onChange={(e) => setTitre(e.target.value)} placeholder={t.fActionTitre} className={`${CHAMP} flex-1`} />
+          <input type="number" min={1} max={200} value={places} onChange={(e) => setPlaces(Number(e.target.value) || 1)} aria-label={t.fPlaces} className={`${CHAMP} md:w-24`} />
+          <button type="button" onClick={ajouter} disabled={occupe === 'ajout' || !titre.trim()} className="rounded-full bg-emerald-500 px-5 py-2 text-xs font-semibold text-black hover:bg-emerald-400 disabled:opacity-50">
+            {t.ajouterAction}
+          </button>
+          <button type="button" onClick={() => setAjout(false)} className="rounded-full border border-white/10 px-4 py-2 text-xs text-slate-400 hover:text-white">{t.annuler}</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // --- Formulaire en modale ---------------------------------------------------
 
-const ModaleEvenement: React.FC<{ t: Textes; locale: string; onFermer: () => void }> = ({
-  t, locale, onFermer,
+export const ModaleEvenement: React.FC<{
+  t: Textes; locale: string; onFermer: () => void; cellule?: { id: string; nom: string };
+}> = ({
+  t, locale, onFermer, cellule,
 }) => {
   const { profile } = useAuth();
   const [title, setTitle] = useState('');
+  const [celluleId, setCelluleId] = useState(cellule?.id ?? '');
+  const [mesCellules, setMesCellules] = useState<Cellule[]>([]);
+  const [taches, setTaches] = useState<Array<{ titre: string; places: number }>>([]);
+
+  // Les groupes proposes sont ceux dont la personne est membre.
+  useEffect(() => {
+    if (cellule || !profile) return;
+    return suivreCellules(
+      (liste) => setMesCellules(liste.filter((c) => (c.membreUids || []).includes(profile.uid))),
+      () => setMesCellules([])
+    );
+  }, [cellule?.id, profile?.uid]);
   const [type, setType] = useState<TypeEvenement>('assemblee');
   const [quand, setQuand] = useState('');
   const [lieu, setLieu] = useState('');
@@ -406,15 +557,21 @@ const ModaleEvenement: React.FC<{ t: Textes; locale: string; onFermer: () => voi
     setEnvoi(true);
     setMessage('');
     try {
-      await creerEvenement(
+      const groupe = cellule ?? mesCellules.find((c) => c.id === celluleId);
+      const id = await creerEvenement(
         { uid: profile.uid, nom: profile.displayName },
         {
           title, description, lieu, adresse, startsAt: debut, type,
           dateDisplay: new Date(debut).toLocaleDateString(locale, {
             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
           }),
+          celluleId: groupe?.id ?? '',
+          celluleNom: groupe?.nom ?? '',
         }
       );
+      for (const tache of taches) {
+        if (tache.titre.trim()) await ajouterTache(id, tache.titre, tache.places);
+      }
       onFermer();
     } catch {
       setMessage(t.echec);
@@ -461,6 +618,34 @@ const ModaleEvenement: React.FC<{ t: Textes; locale: string; onFermer: () => voi
           <Champ label={t.fDescription}>
             <textarea value={description} maxLength={4000} rows={4} onChange={(e) => setDescription(e.target.value)} className={`${CHAMP} resize-none`}/>
           </Champ>
+          <Champ label={t.fGroupe}>
+            {cellule ? (
+              <p className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs text-sky-300"><Network className="h-3.5 w-3.5" /> {cellule.nom}</p>
+            ) : (
+              <select value={celluleId} onChange={(e) => setCelluleId(e.target.value)} className={CHAMP}>
+                <option value="" className="bg-[#02040a]">{t.sansGroupe}</option>
+                {mesCellules.map((c) => (
+                  <option key={c.id} value={c.id} className="bg-[#02040a]">{c.nom}</option>
+                ))}
+              </select>
+            )}
+          </Champ>
+          <div>
+            <span className={`${ETIQUETTE} text-slate-500`}>{t.actionsForm}</span>
+            <p className="mt-1 text-xs text-slate-500">{t.actionsAide}</p>
+            <div className="mt-3 space-y-2">
+              {taches.map((tache, i) => (
+                <div key={i} className="flex gap-2">
+                  <input value={tache.titre} maxLength={120} placeholder={t.fActionTitre} onChange={(e) => setTaches(taches.map((x, j) => (j === i ? { ...x, titre: e.target.value } : x)))} className={`${CHAMP} flex-1`} />
+                  <input type="number" min={1} max={200} value={tache.places} aria-label={t.fPlaces} onChange={(e) => setTaches(taches.map((x, j) => (j === i ? { ...x, places: Number(e.target.value) || 1 } : x)))} className={`${CHAMP} w-20`} />
+                  <button type="button" onClick={() => setTaches(taches.filter((_, j) => j !== i))} aria-label={t.supprimerAction} className="rounded-full border border-white/5 px-3 text-slate-500 hover:text-red-400"><X className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
+              <button type="button" onClick={() => setTaches([...taches, { titre: '', places: 2 }])} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300">
+                <Plus className="h-3.5 w-3.5" /> {t.ajouterAction}
+              </button>
+            </div>
+          </div>
         </div>
         {message && <p className="mt-4 text-sm text-amber-400">{message}</p>}
         {!profile && <p className="mt-4 text-sm text-slate-400">{t.connectez}</p>}
