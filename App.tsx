@@ -133,6 +133,7 @@ const AppContent: React.FC = () => {
   };
 
   const renderContent = () => {
+    if (routeInconnue) return <NotFound language={language} onRetour={quitterAdmin} />;
     if (routeAdmin) return <AdminModules language={language} />;
     switch (currentView) {
       case ViewState.DASHBOARD:
