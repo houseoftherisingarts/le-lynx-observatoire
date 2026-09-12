@@ -15,7 +15,7 @@ interface NotFoundProps {
 const COPY: Record<Language, { eyebrow: string; quote: string; line1: string; line2: string; cta: string }> = {
   fr: {
     eyebrow: 'Piste perdue dans la forêt',
-    quote: "« Le lynx a suivi cette piste jusque dans les bois et n'a trouvé que la nuit. »",
+    quote: "« Le lynx a suivi cette piste jusque dans les bois et n'a trouvé que la nuit.\u00A0»",
     line1: "Cette adresse n'existe pas sur l'observatoire du Lynx, ou elle a changé depuis votre dernier passage.",
     line2: 'Le tableau de bord garde la veille pendant ce temps, avec les dossiers et les signaux à jour.',
     cta: 'Retour au tableau de bord',
