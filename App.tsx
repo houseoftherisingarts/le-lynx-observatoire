@@ -47,12 +47,18 @@ const AppContent: React.FC = () => {
 
   // /admin est une vraie adresse. L'hébergement renvoie tout vers index.html,
   // donc le chemin se lit ici, au démarrage et à chaque retour arrière.
-  const [routeAdmin, setRouteAdmin] = useState(
-    () => typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === '/admin'
+  const [routeAdmin, setRouteAdmin] = useState(() => cheminNormalise() === '/admin');
+  // Toute adresse hors /  et /admin ne mène à rien : la 404 prend la place
+  // du tableau de bord plutôt que de l'afficher par défaut.
+  const [routeInconnue, setRouteInconnue] = useState(
+    () => !ROUTES_CONNUES.includes(cheminNormalise())
   );
   useEffect(() => {
-    const relire = () =>
-      setRouteAdmin(window.location.pathname.replace(/\/+$/, '') === '/admin');
+    const relire = () => {
+      const chemin = cheminNormalise();
+      setRouteAdmin(chemin === '/admin');
+      setRouteInconnue(!ROUTES_CONNUES.includes(chemin));
+    };
     window.addEventListener('popstate', relire);
     return () => window.removeEventListener('popstate', relire);
   }, []);
