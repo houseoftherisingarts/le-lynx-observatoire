@@ -19,6 +19,7 @@ import Bibliotheque from './components/Bibliotheque';
 import AireProtegee from './components/AireProtegee';
 import PoserQuestion from './components/social/PoserQuestion';
 import Cloche from './components/social/Cloche';
+import NotFound from './components/NotFound';
 import { Map as MapIcon, Scale, Menu, ExternalLink, FileText, Lock, ShieldCheck, BookOpen, Download, Globe, X, HelpCircle, Monitor, Layers, RefreshCw, ZoomIn, Eye } from 'lucide-react';
 
 // Add global types for external libraries
@@ -27,6 +28,12 @@ declare global {
         google: any;
     }
 }
+
+// Le chemin de l'adresse, sans le slash de fin. Sert à reconnaître /admin
+// et à détecter toute adresse que l'application ne connaît pas.
+const cheminNormalise = () =>
+  typeof window === 'undefined' ? '/' : window.location.pathname.replace(/\/+$/, '') || '/';
+const ROUTES_CONNUES = ['/', '/admin'];
 
 // Google Maps Component
 const AppContent: React.FC = () => {
