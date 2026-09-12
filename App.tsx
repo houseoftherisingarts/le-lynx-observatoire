@@ -98,9 +98,10 @@ const AppContent: React.FC = () => {
   }, []);
 
   const quitterAdmin = () => {
-    if (!routeAdmin) return;
+    if (!routeAdmin && !routeInconnue) return;
     window.history.pushState({}, '', '/');
     setRouteAdmin(false);
+    setRouteInconnue(false);
   };
 
   const handleNavigateToCommunityAction = () => {
