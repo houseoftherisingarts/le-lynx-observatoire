@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden; position: relative;
+    background: #02040a; font-family: Inter, sans-serif; color: #e2e8f0;
+  }
+  .fond {
+    position: absolute; inset: 0;
+    background: url('../../public/courriel/carte.jpg') center 42% / cover no-repeat;
+    opacity: .34; filter: saturate(.75) contrast(1.05);
+  }
+  .voile {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(100deg, #02040a 30%, rgba(2,4,10,.72) 58%, rgba(2,4,10,.30) 100%),
+      radial-gradient(120% 90% at 8% 50%, rgba(16,185,129,.16), transparent 62%);
+  }
+  .cadre {
+    position: absolute; inset: 0; padding: 64px 72px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .haut { display: flex; align-items: center; gap: 22px; }
+  .haut img { width: 72px; height: 84px; object-fit: contain; }
+  .marque { font-size: 22px; font-weight: 700; letter-spacing: 8px; color: #fff; }
+  .sous { margin-top: 7px; font-size: 13px; font-weight: 700; letter-spacing: 4.5px; color: #10b981; }
+  h1 {
+    font-family: 'Playfair Display', serif; font-weight: 500;
+    font-size: 66px; line-height: 1.08; color: #fff; max-width: 740px;
+    text-shadow: 0 4px 34px rgba(0,0,0,.65);
+  }
+  .regle { width: 92px; height: 4px; background: #10b981; border-radius: 4px; margin: 26px 0 22px; }
+  .phrase { font-size: 23px; line-height: 1.5; color: #b8c6d6; max-width: 700px; }
+  .bas { display: flex; align-items: center; justify-content: space-between; }
+  .adresse { font-size: 21px; font-weight: 600; letter-spacing: 1.5px; color: #10b981; }
+  .etiquette {
+    font-size: 13px; font-weight: 700; letter-spacing: 3px; color: #8fa2b5;
+    border: 1px solid rgba(143,162,181,.34); border-radius: 999px; padding: 9px 20px;
+  }
+</style>
+</head>
+<body>
+  <div class="fond"></div>
+  <div class="voile"></div>
+  <div class="cadre">
+    <div class="haut">
+      <img src="../../public/courriel/logo.png" alt="">
+      <div>
+        <div class="marque">LE LYNX</div>
+        <div class="sous">OBSERVATOIRE CITOYEN</div>
+      </div>
+    </div>
+    <div>
+      <h1>Le dossier de la mine La Loutre, au grand jour</h1>
+      <div class="regle"></div>
+      <p class="phrase">La chronologie tenue à jour, les 485 titres miniers de la Petite-Nation sur la carte, et le réseau des groupes qui suivent le dossier.</p>
+    </div>
+    <div class="bas">
+      <div class="adresse">lelynx.ca</div>
+      <div class="etiquette">GRATUIT · INDÉPENDANT · CITOYEN</div>
+    </div>
+  </div>
+</body>
+</html>
