@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Users, Plus, Lock, Unlock, X, Send, MapPin, Tag, Check, LogOut, Loader, ShieldAlert, MessageCircle, CalendarDays } from 'lucide-react';
+import { Users, Plus, Lock, Unlock, X, Send, MapPin, Tag, Check, LogOut, Loader, ShieldAlert, MessageCircle, CalendarDays, BadgeCheck } from 'lucide-react';
 import Evenements from './Evenements';
 import { Language } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -10,6 +10,7 @@ import {
     FicheMembre,
     suivreCellules,
     suivreCellule,
+    reconnaitreCellule,
     creerCellule,
     rejoindreCellule,
     demanderAcces,
@@ -39,6 +40,9 @@ const T = {
         intro: "Chaque groupe rassemble des gens d'une même municipalité, d'un même lac ou d'un même métier. Vous entrez dans celui qui vous ressemble, vous y trouvez le travail en cours et vous y donnez rendez-vous.",
         fonder: 'Fonder un groupe', rejoindre: 'Rejoindre', demander: 'Demander à entrer', ouvrir: 'Ouvrir',
         enAttente: 'Demande envoyée', ouverte: 'Ouverte', fermee: 'Sur demande', membres: 'membres',
+        reconnue: 'Groupe reconnu',
+        reconnuExplique: 'Groupe reconnu : ses membres versent à la bibliothèque commune',
+        poserSceau: 'Reconnaître ce groupe', retirerSceau: 'Retirer la reconnaissance',
         videTitre: 'Aucun groupe pour le moment',
         videTexte: "Le premier groupe reste à fonder. Vous lui donnez un nom, une municipalité ou un thème, et les gens du secteur le verront apparaître ici.",
         connexionTitre: 'Connexion requise',
@@ -65,6 +69,9 @@ const T = {
         intro: 'Each group gathers people from one municipality, one lake or one trade. You join the one that fits you, you find the work under way and you set your gatherings there.',
         fonder: 'Found a group', rejoindre: 'Join', demander: 'Ask to join', ouvrir: 'Open',
         enAttente: 'Request sent', ouverte: 'Open', fermee: 'By request', membres: 'members',
+        reconnue: 'Recognized group',
+        reconnuExplique: 'Recognized group: its members add to the shared library',
+        poserSceau: 'Recognize this group', retirerSceau: 'Remove recognition',
         videTitre: 'No group yet',
         videTexte: 'The first group is still to be founded. You give it a name, a municipality or a theme, and people nearby will see it appear here.',
         connexionTitre: 'Account required',
@@ -385,6 +392,11 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                             </span>
                         </div>
                         <h3 className="text-lg font-bold text-white leading-snug mb-2" style={deuxLignes}>{c.nom}</h3>
+                        {c.reconnue && (
+                            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] text-emerald-400">
+                                <BadgeCheck size={11} /> {t.reconnue}
+                            </span>
+                        )}
                         <p className="text-sm text-slate-400 leading-relaxed mb-6" style={troisLignes}>{c.description}</p>
                         <div className="flex flex-wrap items-center justify-between gap-3 mt-auto pt-4 border-t border-white/5">
                             <div className="flex items-center gap-3 min-w-0">
@@ -472,6 +484,20 @@ const Cellules: React.FC<CellulesProps> = ({ language, isAdmin = false }) => {
                             <div className="min-w-0">
                                 <span className={`${etiquetteClasse} text-emerald-500 block truncate`}>{detail.municipalite || detail.theme || t.etiquette}</span>
                                 <h3 className="text-2xl md:text-3xl font-serif text-white mt-2" style={deuxLignes}>{detail.nom}</h3>
+                                {detail.reconnue && (
+                                    <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-400">
+                                        <BadgeCheck size={12} /> {t.reconnuExplique}
+                                    </p>
+                                )}
+                                {isAdmin && (
+                                    <button
+                                        type="button"
+                                        onClick={() => reconnaitreCellule(detail.id, !detail.reconnue).catch(() => undefined)}
+                                        className={`mt-2 ml-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] transition-all ${detail.reconnue ? 'border-white/10 text-slate-400 hover:text-red-400' : 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10'}`}
+                                    >
+                                        <BadgeCheck size={12} /> {detail.reconnue ? t.retirerSceau : t.poserSceau}
+                                    </button>
+                                )}
                                 <p className="text-sm text-slate-400 mt-3 max-w-2xl leading-relaxed break-words">{detail.description}</p>
                             </div>
                             <button onClick={() => setOuvertId(null)} className="text-slate-500 hover:text-white p-2 shrink-0"><X size={20} /></button>

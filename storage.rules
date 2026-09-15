@@ -23,6 +23,17 @@ service firebase.storage {
       allow write: if signedIn() && request.auth.uid == userId && imageSous(10);
     }
 
+    // Fonds personnel : PDF, image ou fichier texte, jusqu'a 20 Mo.
+    match /documents/{userId}/{fichier} {
+      allow read: if true;
+      allow write: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.size < 20 * 1024 * 1024
+        && (request.resource.contentType == 'application/pdf'
+            || request.resource.contentType.matches('image/.*')
+            || request.resource.contentType.matches('text/.*'));
+    }
+
     match /mur/{userId}/{fichier} {
       allow read: if true;
       allow write: if signedIn() && request.auth.uid == userId && imageSous(10);

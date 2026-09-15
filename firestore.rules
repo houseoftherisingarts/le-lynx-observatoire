@@ -36,6 +36,16 @@ service cloud.firestore {
             && request.resource.data[field].size() <= maxLen);
     }
 
+    // Une cellule « reconnue » par l'administration donne a ses membres le droit
+    // de verser dans la bibliotheque commune, au nom du groupe.
+    function celluleReconnue(celluleId) {
+      return celluleId is string
+        && celluleId.size() > 0
+        && exists(/databases/$(database)/documents/cellules/$(celluleId))
+        && get(/databases/$(database)/documents/cellules/$(celluleId)).data.reconnue == true
+        && uid() in get(/databases/$(database)/documents/cellules/$(celluleId)).data.membreUids;
+    }
+
     function touchesOnly(fields) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
     }
@@ -64,6 +74,20 @@ service cloud.firestore {
                               .affectedKeys().hasAny(['verifie']))
                     || isAdmin();
       allow delete: if isAdmin();
+
+      // Le fonds personnel : chacun depose le sien, tout membre connecte le lit.
+      match /documents/{docId} {
+        allow read: if signedIn();
+        allow create: if isOwner(userId)
+          && request.resource.data.uid == userId
+          && str('titre', 200)
+          && str('url', 1200)
+          && optStr('note', 900);
+        allow update: if isAdmin()
+          || (isOwner(userId)
+              && touchesOnly(['titre', 'note', 'propose', 'publieId', 'celluleId', 'celluleNom']));
+        allow delete: if isAdmin() || isOwner(userId);
+      }
     }
 
     match /badges/{userId} {
@@ -253,9 +277,11 @@ service cloud.firestore {
       allow read: if true;
       allow create: if signedIn()
         && str('nom', 120)
-        && request.resource.data.fondateurUid == uid();
+        && request.resource.data.fondateurUid == uid()
+        && request.resource.data.get('reconnue', false) == false;
       allow update: if isAdmin()
-        || isOwner(resource.data.fondateurUid)
+        || (isOwner(resource.data.fondateurUid)
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reconnue']))
         || (signedIn() && touchesOnly(['membreUids', 'nbMembres']));
       allow delete: if isAdmin() || isOwner(resource.data.fondateurUid);
 
@@ -399,7 +425,11 @@ service cloud.firestore {
 
     match /resources/{docId} {
       allow read: if true;
-      allow create: if signedIn() && str('title', 200);
+      // Le versement direct appartient a l'administration et aux membres d'un
+      // groupe reconnu; tous les autres passent par /propositions.
+      allow create: if signedIn()
+        && str('title', 200)
+        && (isAdmin() || celluleReconnue(request.resource.data.get('celluleId', '')));
       allow update, delete: if isAdmin() || isOwner(resource.data.authorId);
     }
 
@@ -429,6 +459,18 @@ service cloud.firestore {
     // =====================================================================
     // Gere par les fonctions uniquement
     // =====================================================================
+
+    // Pieces declarees a l'administration par une personne sans groupe reconnu.
+    match /propositions/{propositionId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == uid());
+      allow create: if signedIn()
+        && request.resource.data.uid == uid()
+        && str('titre', 200)
+        && str('url', 1200)
+        && request.resource.data.statut == 'attente';
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || isOwner(resource.data.uid);
+    }
 
     match /rateLimits/{doc} {
       allow read, write: if false;

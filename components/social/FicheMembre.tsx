@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Language } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import FondsMembre from './FondsMembre';
 import {
   MembreFiche,
   MUNICIPALITES,
@@ -490,6 +491,13 @@ const FicheMembre: React.FC<FicheMembreProps> = ({
                 </div>
               </div>
             )}
+
+            <FondsMembre
+              uid={uid}
+              nomMembre={fiche.nom}
+              estMoi={estMoi}
+              language={language}
+            />
 
             {!estMoi && (onEcrire || onAllier) && (
               <div className="mt-5 flex flex-wrap gap-2">

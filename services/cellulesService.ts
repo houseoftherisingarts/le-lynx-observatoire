@@ -42,6 +42,8 @@ export interface Cellule {
   membreUids: string[];
   nbMembres: number;
   ouverte: boolean;
+  /** Sceau pose par l'administration : ses membres versent a la bibliotheque. */
+  reconnue?: boolean;
   creeLe: Timestamp | null;
 }
 
@@ -148,6 +150,21 @@ export const creerCellule = async (
   });
   return ref.id;
 };
+
+/**
+ * Reconnaissance d'un groupe par l'administration. Les regles Firestore
+ * refusent ce champ a tout le monde d'autre, fondateur compris.
+ */
+export const reconnaitreCellule = async (
+  celluleId: string,
+  reconnue: boolean
+): Promise<void> => {
+  await updateDoc(doc(db, 'cellules', celluleId), { reconnue });
+};
+
+/** Les groupes reconnus dont une personne fait partie. */
+export const groupesReconnusDe = (cellules: Cellule[], uid: string): Cellule[] =>
+  cellules.filter((c) => c.reconnue === true && (c.membreUids || []).includes(uid));
 
 /** Compte des membres apres l'ajout d'un uid, sans double comptage. */
 const compteAvec = (membreUids: string[], uid: string): number =>

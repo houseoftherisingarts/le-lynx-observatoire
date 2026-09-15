@@ -14,6 +14,11 @@ import {
 } from 'lucide-react';
 import { Language } from '../types';
 import {
+  Proposition,
+  suivrePropositions,
+  trancherProposition,
+} from '../services/documentsService';
+import {
   DOCUMENTS_DE_DEPART,
   Document,
   FORMATS_DOCUMENT,
@@ -36,6 +41,10 @@ interface BibliothequeProps {
 
 const T = {
   fr: {
+    declarees: 'Pièces déclarées à l’administration',
+    publier: 'Publier',
+    laisser: 'Laisser',
+    verseePar: 'Versé par',
     titre: 'Bibliothèque',
     intro:
       "Les pièces du dossier La Loutre, telles qu’elles ont été publiées par leurs auteurs. Chaque adresse a été ouverte et vérifiée.",
@@ -68,6 +77,10 @@ const T = {
     manqueUrl: 'L’adresse doit commencer par http ou https.',
   },
   en: {
+    declarees: 'Pieces sent to the administration',
+    publier: 'Publish',
+    laisser: 'Leave',
+    verseePar: 'Added by',
     titre: 'Library',
     intro:
       'The documents of the La Loutre file, as published by their authors. Every address was opened and verified.',
@@ -132,6 +145,34 @@ const Bibliotheque: React.FC<BibliothequeProps> = ({ language, isAdmin = false }
   const [formulaire, setFormulaire] = useState<NouveauDocument>(FORMULAIRE_VIDE);
   const [enregistrement, setEnregistrement] = useState(false);
   const [erreurFormulaire, setErreurFormulaire] = useState('');
+  const [propositions, setPropositions] = useState<Proposition[]>([]);
+
+  // La file des pieces declarees n'interesse que l'administration.
+  useEffect(() => {
+    if (!isAdmin) {
+      setPropositions([]);
+      return undefined;
+    }
+    return suivrePropositions(setPropositions);
+  }, [isAdmin]);
+
+  /** Publication d'une piece declaree : elle entre dans la bibliotheque commune. */
+  const publierProposition = async (proposition: Proposition) => {
+    try {
+      await ajouterDocument({
+        titre: proposition.titre,
+        auteur: proposition.nomMembre,
+        annee: new Date().getFullYear(),
+        type: 'rapport',
+        resume: proposition.note,
+        url: proposition.url,
+        format: proposition.format === 'PDF' ? 'PDF' : 'page web',
+      });
+      await trancherProposition(proposition, 'publiee');
+    } catch {
+      setErreur(true);
+    }
+  };
 
   useEffect(() => {
     const desabonner = suivreBibliotheque(
@@ -227,6 +268,50 @@ const Bibliotheque: React.FC<BibliothequeProps> = ({ language, isAdmin = false }
           </button>
         )}
       </div>
+
+      {isAdmin && propositions.length > 0 && (
+        <div className="glass-panel rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-5">
+          <h3 className="text-sm font-bold text-emerald-300">
+            {t.declarees} ({propositions.length})
+          </h3>
+          <ul className="mt-3 space-y-2">
+            {propositions.map((proposition) => (
+              <li
+                key={proposition.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3"
+              >
+                <div className="min-w-0">
+                  <a
+                    href={proposition.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block truncate text-sm font-semibold text-slate-200 hover:text-emerald-400"
+                  >
+                    {proposition.titre}
+                  </a>
+                  <p className="text-[11px] text-slate-500">{proposition.nomMembre}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => publierProposition(proposition)}
+                    className="rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-bold text-black hover:bg-emerald-400"
+                  >
+                    {t.publier}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => trancherProposition(proposition, 'refusee').catch(() => undefined)}
+                    className="rounded-full border border-white/10 px-3 py-1 text-[11px] text-slate-400 hover:text-red-400"
+                  >
+                    {t.laisser}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {erreur && (
         <div className="glass-panel rounded-2xl border border-red-500/20 bg-red-950/20 p-5 flex items-start gap-3">
@@ -329,6 +414,11 @@ const Bibliotheque: React.FC<BibliothequeProps> = ({ language, isAdmin = false }
                     {document.auteur}
                     {document.annee ? ` · ${document.annee}` : ''}
                   </p>
+                  {document.celluleNom && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      {t.verseePar} {document.celluleNom}
+                    </p>
+                  )}
                   <p className="text-sm text-slate-400 font-light leading-relaxed mt-3">
                     {document.resume}
                   </p>

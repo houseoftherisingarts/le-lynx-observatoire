@@ -41,6 +41,8 @@ export interface Document {
   url: string;
   format: FormatDocument;
   poids?: string;
+  /** Groupe reconnu au nom duquel la piece a ete versee, s'il y en a un. */
+  celluleNom?: string;
   ajouteLe: string;
 }
 
@@ -321,6 +323,10 @@ const versDocument = (id: string, data: Record<string, unknown>): Document => {
     url: texte(typeof data.url === 'string' ? data.url : '', MAX_URL),
     format: estFormat(data.format) ? data.format : 'page web',
     poids: typeof data.poids === 'string' && data.poids ? texte(data.poids, MAX_POIDS) : undefined,
+    celluleNom:
+      typeof data.celluleNom === 'string' && data.celluleNom
+        ? texte(data.celluleNom, 120)
+        : undefined,
     ajouteLe: typeof data.ajouteLe === 'string' ? data.ajouteLe : '',
   };
 };

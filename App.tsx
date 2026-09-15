@@ -20,6 +20,10 @@ import AireProtegee from './components/AireProtegee';
 import PoserQuestion from './components/social/PoserQuestion';
 import Cloche from './components/social/Cloche';
 import NotFound from './components/NotFound';
+import EcranBienvenue, { prenomInvite } from './components/EcranBienvenue';
+import VisiteGuidee from './components/VisiteGuidee';
+import { ETAPES_VISITE, LIBELLES_VISITE } from './components/visite-etapes';
+import { AnimatePresence } from 'framer-motion';
 import { Map as MapIcon, Scale, Menu, ExternalLink, FileText, Lock, ShieldCheck, BookOpen, Download, Globe, X, HelpCircle, Monitor, Layers, RefreshCw, ZoomIn, Eye } from 'lucide-react';
 
 // Add global types for external libraries
@@ -43,6 +47,11 @@ const AppContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [language, setLanguage] = useState<Language>('fr');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // L'accueil nomme des lettres d'invitation : `?bonjour=Aaron`. Sans prenom,
+  // rien ne s'affiche et le site s'ouvre comme d'habitude.
+  const [prenomInvitation] = useState<string>(() => prenomInvite());
+  const [bienvenueOuverte, setBienvenueOuverte] = useState<boolean>(() => prenomInvite() !== '');
+  const [visiteOuverte, setVisiteOuverte] = useState(false);
   const [ecrireA, setEcrireA] = useState<string | null>(null);
 
   // /admin est une vraie adresse. L'hébergement renvoie tout vers index.html,
@@ -230,6 +239,29 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen font-sans relative overflow-hidden bg-[#02040a] text-slate-200">
+
+      <AnimatePresence>
+        {bienvenueOuverte && (
+          <EcranBienvenue
+            key="bienvenue"
+            prenom={prenomInvitation}
+            onVisite={() => {
+              setBienvenueOuverte(false);
+              setVisiteOuverte(true);
+            }}
+            onEntrer={() => setBienvenueOuverte(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <VisiteGuidee
+        etapes={ETAPES_VISITE}
+        ouvert={visiteOuverte}
+        onFermer={() => setVisiteOuverte(false)}
+        onAller={(id) => setView(id as ViewState)}
+        libelles={LIBELLES_VISITE}
+      />
+
       
       {/* FULL SCREEN IMAGE MODAL */}
       {selectedImage && (

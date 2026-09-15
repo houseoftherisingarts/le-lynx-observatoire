@@ -272,6 +272,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 )}
                 <button
                     onClick={() => setView(item.id)}
+                    data-visite={item.id}
                     className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${
                     isActive 
                         ? 'bg-white/10 text-white shadow-lg' 

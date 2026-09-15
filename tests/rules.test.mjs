@@ -52,6 +52,22 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, 'badges', ALEX), { uid: ALEX, obtenus: {}, exposes: [] });
   await setDoc(doc(db, 'directs', 'actuel'), { actif: false, titre: 'Aucun direct' });
   await setDoc(doc(db, 'engagement', ALEX), { uid: ALEX, nom: 'Alex', total: 12, parCategorie: {} });
+  // Deux groupes de resistance : le CALME est reconnu, l'autre ne l'est pas.
+  await setDoc(doc(db, 'cellules', 'calme'), {
+    nom: 'CALME', municipalite: 'Ripon', theme: 'Terrain', description: '',
+    fondateurUid: ALEX, fondateurNom: 'Alex', membreUids: [ALEX, BEA], nbMembres: 2,
+    ouverte: true, reconnue: true,
+  });
+  await setDoc(doc(db, 'cellules', 'voisins'), {
+    nom: 'Les voisins', municipalite: 'Namur', theme: 'Veille', description: '',
+    fondateurUid: BEA, fondateurNom: 'Béa', membreUids: [BEA], nbMembres: 1,
+    ouverte: true, reconnue: false,
+  });
+  await setDoc(doc(db, 'membres', BEA), { uid: BEA, nom: 'Béa', verifie: false });
+  await setDoc(doc(db, 'membres', ALEX, 'documents', 'd1'), {
+    uid: ALEX, nomMembre: 'Alex', titre: 'Avis de claim', note: '', url: 'https://x.ca/a.pdf',
+    format: 'PDF', propose: false,
+  });
 });
 
 const alex = env.authenticatedContext(ALEX).firestore();
@@ -161,6 +177,23 @@ verifier('un passant lit le direct', () => assertSucceeds(getDoc(doc(passant, 'd
 verifier('un membre n’ouvre pas un direct', () => assertFails(setDoc(doc(bea, 'directs', 'actuel'), { actif: true, titre: 'Faux direct' })));
 verifier('le classement d’engagement est lisible', () => assertSucceeds(getDoc(doc(bea, 'engagement', ALEX))));
 verifier('personne ne s’accorde des points', () => assertFails(setDoc(doc(bea, 'engagement', BEA), { uid: BEA, nom: 'Béa', total: 9999, parCategorie: {} })));
+
+// --- Fonds personnel et bibliotheque commune --------------------------------------
+verifier('chacun dépose dans son fonds', () => assertSucceeds(addDoc(collection(alex, 'membres', ALEX, 'documents'), { uid: ALEX, nomMembre: 'Alex', titre: 'Carte des claims', note: 'Relevé', url: 'https://x.ca/c.pdf', format: 'PDF', propose: false, creeLe: serverTimestamp() })));
+verifier('personne ne dépose dans le fonds d’un autre', () => assertFails(addDoc(collection(bea, 'membres', ALEX, 'documents'), { uid: ALEX, nomMembre: 'Alex', titre: 'Faux', note: '', url: 'https://x.ca/f.pdf', format: 'PDF', propose: false, creeLe: serverTimestamp() })));
+verifier('un membre lit le fonds d’un autre', () => assertSucceeds(getDoc(doc(bea, 'membres', ALEX, 'documents', 'd1'))));
+verifier('un passant ne lit pas le fonds', () => assertFails(getDoc(doc(passant, 'membres', ALEX, 'documents', 'd1'))));
+verifier('chacun retire sa propre pièce', () => assertSucceeds(deleteDoc(doc(alex, 'membres', ALEX, 'documents', 'd1'))));
+verifier('un membre d’un groupe reconnu verse à la bibliothèque', () => assertSucceeds(addDoc(collection(bea, 'resources'), { type: 'document', title: 'Mémoire du CALME', titre: 'Mémoire du CALME', url: 'https://x.ca/m.pdf', authorId: BEA, celluleId: 'calme', celluleNom: 'CALME', creeLe: serverTimestamp() })));
+verifier('un groupe non reconnu ne verse pas', () => assertFails(addDoc(collection(bea, 'resources'), { type: 'document', title: 'Note', titre: 'Note', url: 'https://x.ca/n.pdf', authorId: BEA, celluleId: 'voisins', celluleNom: 'Les voisins', creeLe: serverTimestamp() })));
+verifier('un membre seul ne verse pas', () => assertFails(addDoc(collection(bea, 'resources'), { type: 'document', title: 'Seul', titre: 'Seul', url: 'https://x.ca/s.pdf', authorId: BEA, creeLe: serverTimestamp() })));
+verifier('l’administration verse toujours', () => assertSucceeds(addDoc(collection(patron, 'resources'), { type: 'document', title: 'Étude', titre: 'Étude', url: 'https://x.ca/e.pdf', creeLe: serverTimestamp() })));
+verifier('une pièce se déclare à l’administration', () => assertSucceeds(addDoc(collection(bea, 'propositions'), { uid: BEA, nomMembre: 'Béa', documentId: 'd9', titre: 'Résolution', note: '', url: 'https://x.ca/r.pdf', format: 'PDF', statut: 'attente', creeLe: serverTimestamp() })));
+verifier('une déclaration ne naît pas publiée', () => assertFails(addDoc(collection(bea, 'propositions'), { uid: BEA, nomMembre: 'Béa', documentId: 'd9', titre: 'Résolution', note: '', url: 'https://x.ca/r.pdf', format: 'PDF', statut: 'publiee', creeLe: serverTimestamp() })));
+verifier('personne ne déclare au nom d’un autre', () => assertFails(addDoc(collection(bea, 'propositions'), { uid: ALEX, nomMembre: 'Alex', documentId: 'd9', titre: 'Faux', note: '', url: 'https://x.ca/f.pdf', format: 'PDF', statut: 'attente', creeLe: serverTimestamp() })));
+verifier('un fondateur ne se déclare pas reconnu', () => assertFails(updateDoc(doc(bea, 'cellules', 'voisins'), { reconnue: true })));
+verifier('l’administration reconnaît un groupe', () => assertSucceeds(updateDoc(doc(patron, 'cellules', 'voisins'), { reconnue: true })));
+verifier('un groupe ne naît pas reconnu', () => assertFails(addDoc(collection(bea, 'cellules'), { nom: 'Auto-reconnu', municipalite: 'X', theme: 'Y', description: '', fondateurUid: BEA, fondateurNom: 'Béa', membreUids: [BEA], nbMembres: 1, ouverte: true, reconnue: true, creeLe: serverTimestamp() })));
 
 // --- Verdict ----------------------------------------------------------------------
 let echecs = 0;
