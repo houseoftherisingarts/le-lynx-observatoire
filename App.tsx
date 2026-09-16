@@ -371,18 +371,9 @@ const AppContent: React.FC = () => {
           {renderContent()}
         </div>
 
-        <footer className="mt-12 py-10 border-t border-white/5 text-center relative">
+        <footer className="mt-12 py-10 border-t border-white/5 text-center relative flex justify-center">
             <div className="absolute left-1/2 -top-px -translate-x-1/2 w-24 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
-            <a href="https://www.lesalondesinconnus.com" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-3 group">
-                <p className="text-[10px] text-slate-600 font-bold tracking-[0.3em] uppercase group-hover:text-emerald-500/80 transition-colors">
-                    interface conceptualisée par le salon des inconnus
-                </p>
-                <img 
-                    src="https://i.imgur.com/vxVavBR.png" 
-                    alt="Logo Salon des Inconnus" 
-                    className="w-12 h-auto opacity-50 group-hover:opacity-100 transition-all duration-300"
-                />
-            </a>
+            <CollantVexel language={language} />
         </footer>
       </main>
     </div>
