@@ -22,6 +22,7 @@ import Cloche from './components/social/Cloche';
 import NotFound from './components/NotFound';
 import EcranBienvenue, { prenomInvite } from './components/EcranBienvenue';
 import VisiteGuidee from './components/VisiteGuidee';
+import CollantVexel from './components/CollantVexel';
 import { ETAPES_VISITE, LIBELLES_VISITE } from './components/visite-etapes';
 import { AnimatePresence } from 'framer-motion';
 import { Map as MapIcon, Scale, Menu, ExternalLink, FileText, Lock, ShieldCheck, BookOpen, Download, Globe, X, HelpCircle, Monitor, Layers, RefreshCw, ZoomIn, Eye } from 'lucide-react';
