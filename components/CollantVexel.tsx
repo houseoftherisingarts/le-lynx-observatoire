@@ -17,7 +17,7 @@ const T = {
   fr: {
     kicker: 'Site créé par',
     nom: 'Vexel Webstudio',
-    sousTitre: 'un projet du Salon des Inconnus',
+    sousTitre: 'un projet créatif du Salon des Inconnus',
     salon: 'Le Salon des Inconnus',
     libelle: 'Site créé par Vexel Webstudio : en savoir plus',
     titre: 'Un site bâti pour durer',
@@ -29,7 +29,7 @@ const T = {
   en: {
     kicker: 'Site by',
     nom: 'Vexel Webstudio',
-    sousTitre: 'a project of Le Salon des Inconnus',
+    sousTitre: 'a creative project of Le Salon des Inconnus',
     salon: 'Le Salon des Inconnus',
     libelle: 'Site by Vexel Webstudio: learn more',
     titre: 'A site built to last',
